@@ -1,0 +1,10 @@
+.idea
+.vscode
+
+.git
+
+build
+dist
+migrations
+node_modules
+scripts

@@ -1,0 +1,37 @@
+version: "3.9"
+
+services:
+  base-database: &base-database
+    image: postgres:14.0-alpine
+    ports:
+      - 5432:5432
+
+  bot:
+    image: flashy
+    build:
+      context: .
+      dockerfile: ./build/Dockerfile
+    environment:
+      NODE_ENV: production
+    ports:
+      - 3000:3000
+
+  bot-debug:
+    image: flashy
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    environment:
+      NODE_ENV: development
+    ports:
+      - 3000:3000
+      - 9229:9229
+    command: ["node", "--inspect=0.0.0.0:9229", "dist/index.js"]
+
+
+  database-local:
+    <<: *base-database
+    environment:
+      POSTGRES_DB: flashy
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
