@@ -8,7 +8,8 @@ export const stateTypeWordToAdd = "typeWordToAdd"; // Symbol(stateTypeWordToAddN
 export const stateTypeWordToRemove = "typeWordToRemove"; // Symbol(stateTypeWordToRemoveName);
 export const stateTypeDefinitionToAdd = "typeDefinitionToAdd"; // Symbol(stateTypeDefinitionToAddName);
 
-export type State = typeof stateDefault | typeof stateTypeWordToAdd | typeof stateTypeWordToRemove | typeof stateTypeDefinitionToAdd;
+export type State = typeof stateDefault | typeof stateTypeWordToAdd | typeof stateTypeWordToRemove |
+    typeof stateTypeDefinitionToAdd;
 
 export const stateTransitionMap: {[Property in State]: Array<State>} = {
     [stateDefault]: [stateTypeWordToAdd, stateTypeWordToRemove],

@@ -31,7 +31,10 @@ export const getUser = async (userId: number): Promise<[User, Err]> => {
 
 
 export const setStateToUser = async (userId: number, state: State, info: unknown): Promise<Err> => {
-    const res = await pool.query("UPDATE users SET state = $1, state_data = $2 WHERE user_id = $3;", [state, info, userId]);
+    const res = await pool.query(
+        "UPDATE users SET state = $1, state_data = $2 WHERE user_id = $3;",
+        [state, info, userId]
+    );
     if (res.rowCount !== 1) {
         // TODO do sth
     }
