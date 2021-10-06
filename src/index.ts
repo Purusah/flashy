@@ -1,33 +1,69 @@
+import { Keyboard, webhookCallback } from "grammy";
+import http from "http";
 import { Pool } from "pg";
-import { Keyboard } from "grammy";
-import { Command } from "./bot/commands";
+import {
+    Command,
+    responseGreeting,
+    responseGreetingAgain,
+    responseInternalErrorOnStart,
+    responseUnknownUser,
+    responseWrongCommand
+} from "./bot/commands";
 import { SafeUserStateContext } from "./bot/context";
 import { Bot } from "./lib/bot";
-import { pool, NoRowsFoundError } from "./lib/storage";
+import {
+    stateDefault,
+    stateTypeDefinitionToAdd,
+    stateTypeWordToAdd,
+    stateTypeWordToRemove
+} from "./lib/domain/state";
 import { User } from "./lib/domain/user";
-import { stateTypeDefinitionToAdd, stateTypeWordToAdd, stateTypeWordToRemove } from "./lib/domain/state";
+import { NoRowsFoundError, pool } from "./lib/storage";
 import { Err } from "./lib/types";
 
+
 const isProduction = process.env.NODE_ENV === "production";
-const BOT_TOKEN = process.env.FLASHY_BOT_TOKEN;
+const BOT_URL = process.env.BOT_URL;
+const BOT_TOKEN = process.env.BOT_TOKEN;
 
 if (BOT_TOKEN === undefined) {
     console.error("BOT_TOKEN env not set");
     process.exit(1);
 }
 
+const app = http.createServer(async (req, res) => {
+    if (req.url === "/webhook") {
+        const handler = await webhookCallback(bot, "http");
+        await handler(req, res);
+        return;
+    }
+    res.statusCode = 404;
+    res.end();
+});
+
 const storage = new Pool();
 
-const bot = new Bot(BOT_TOKEN, storage, { ContextConstructor: SafeUserStateContext });
+const bot = new Bot(
+    BOT_TOKEN,
+    storage,
+    {
+        ContextConstructor: SafeUserStateContext,
+        client: {
+            baseFetchConfig: {
+                compress: true,
+                // agent: new Agent({ keepAlive: true }),
+            },
+        },
+    },
+);
 
 const keyboardOnStart = new Keyboard()
     .text(Command.ADD).row()
     .text(Command.REMOVE).row();
 
-// block bots and adding to chats
-// bot.use();
-
-
+/**
+ * Command to start using bot. Add user to database.
+*/
 bot.command("start", async (ctx) => {
     if (ctx.msg.from === undefined || ctx.msg.from.is_bot) {
         return;
@@ -35,44 +71,61 @@ bot.command("start", async (ctx) => {
 
     let [user, err] = await ctx.user;
     if (err === null) {
-        await ctx.reply("Nice to see you again!");
+        await ctx.reply(responseGreetingAgain);
         return;
     } else if (err !== NoRowsFoundError) {
-        await ctx.reply("Sorry, I can't start for now. Please, try again later", {reply_markup: keyboardOnStart});
+        await ctx.reply(responseInternalErrorOnStart, {reply_markup: keyboardOnStart});
         return;
     }
 
     [user, err] = await User.new(ctx.msg.from.id);
     if (err !== null) {
-        await ctx.reply("Sorry, I can't start for now. Please, try again later", {reply_markup: keyboardOnStart});
+        await ctx.reply(responseInternalErrorOnStart, {reply_markup: keyboardOnStart});
         return;
     }
-    await ctx.reply("Nice to meet you!", {reply_markup: keyboardOnStart});
+    await ctx.reply(responseGreeting, {reply_markup: keyboardOnStart});
 });
 
+/**
+ * Middleware to cut off unknown user and ask them to type /start
+*/
 bot.use(async (ctx: SafeUserStateContext, next) => {
     const [_, err] = await ctx.user;
     if (err !== null) {
-        await ctx.reply("Please, type /start to use bot");
+        await ctx.reply(responseUnknownUser);
         return;
     }
     await next();
 });
 
+/**
+ * Start branch to add new word
+*/
 bot.hears(Command.ADD, async (ctx: SafeUserStateContext) => {
-    // set state to type word
-    // await ctx.user.addWord(ctx.msg.text);
-    const [user, _] = await ctx.user; // TODO fix Decorator?
 
-    await ctx.reply("Hey there");
+    const [user, _] = await ctx.user; // checked with middleware
+    if (user.state !== stateDefault) {
+        await ctx.reply(responseWrongCommand);
+        const _ = await user.resetState(); // TODO logging for problems
+        return;
+    }
+
+    await user.setState(stateTypeWordToAdd, null);
+    await ctx.reply("Type word you would like to add");
 });
 
+/**
+ * Start branch to remove word
+*/
 bot.hears(Command.REMOVE, async (ctx) => {
     const [user, _] = await ctx.user; // TODO fix Decorator?
 
     await ctx.reply("Hey there");
 });
 
+/**
+ * Generic handler to receive any type of text message
+*/
 bot.on("message:text", async (ctx) => {
     const [user, _] = await ctx.user; // TODO fix Decorator?
 
@@ -97,14 +150,23 @@ bot.on("message:text", async (ctx) => {
     }
 });
 
-// Enable graceful stop
+/**
+ * Graceful shutdown
+*/
 process.once("SIGINT", async () => {
+    await app.close();
     await pool.end();
     await bot.stop();
 });
 process.once("SIGTERM", async () => {
+    await app.close();
     await pool.end();
     await bot.stop();
 });
 
-bot.start();
+if (isProduction && BOT_URL !== undefined) {
+    app.listen(80, "0.0.0.0");
+    bot.api.setWebhook(BOT_URL);
+} else {
+    bot.start();
+}

@@ -19,6 +19,14 @@ export class User {
         return err;
     }
 
+    async setState(state: State, info: unknown): Promise<Err> {
+        const err = await setStateToUser(this.userId, state, info);
+        if (err === null) {
+            this.state = state;
+        }
+        return err;
+    }
+
     static async new(user_id: number): Promise<[User, Err]> {
         const newUser = new User(user_id, stateDefault);
 
