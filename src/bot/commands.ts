@@ -11,3 +11,6 @@ export const responseInternalErrorOnStart = "Sorry, I can't start for now. Pleas
 export const responseUnknownUser = "Please, type /start to use bot";
 export const responseGreeting = "Nice to meet you!";
 export const responseGreetingAgain = "Nice to see you again!";
+export const responseTypeWordToRemove = "Type word to remove";
+export const responseTypeDefinitionToAdd = "Type definition to use";
+export const responseUnknownError = "Sorry, something went wrong";

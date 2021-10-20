@@ -17,15 +17,20 @@
         "@typescript-eslint"
     ],
     "rules": {
-        "no-trailing-spaces": "error",
-        "require-jsdoc": 0,
-        "quotes": [
+        "@typescript-eslint/no-empty-interface": 0,
+        "@typescript-eslint/no-explicit-any": 0,
+        "@typescript-eslint/no-unused-vars": 0,
+        "eol-last": [
             "error",
-            "double"
+            "always"
         ],
         "indent": [
             "error",
             4
+        ],
+        "linebreak-style": [
+            "error",
+            "unix"
         ],
         "max-len": [
             "error",
@@ -34,12 +39,12 @@
             }
         ],
         "no-multi-spaces": "error",
-        "@typescript-eslint/no-empty-interface": 0,
-        "@typescript-eslint/no-unused-vars": 0,
-        "linebreak-style": [
+        "no-trailing-spaces": "error",
+        "quotes": [
             "error",
-            "unix"
+            "double"
         ],
+        "require-jsdoc": 0,
         "semi": [
             "error",
             "always"

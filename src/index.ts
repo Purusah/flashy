@@ -6,18 +6,21 @@ import {
     responseGreeting,
     responseGreetingAgain,
     responseInternalErrorOnStart,
+    responseTypeDefinitionToAdd,
+    responseTypeWordToRemove,
+    responseUnknownError,
     responseUnknownUser,
     responseWrongCommand
 } from "./bot/commands";
 import { SafeUserStateContext } from "./bot/context";
 import { Bot } from "./lib/bot";
 import {
-    stateDefault,
-    stateTypeDefinitionToAdd,
-    stateTypeWordToAdd,
-    stateTypeWordToRemove
+    StateDefault,
+    StateTypeDefinitionToAdd,
+    StateTypeWordToAdd,
+    StateTypeWordToRemove
 } from "./lib/domain/state";
-import { User } from "./lib/domain/user";
+import { createUser, resetState, setState } from "./lib/domain/user";
 import { NoRowsFoundError, pool } from "./lib/storage";
 import { Err } from "./lib/types";
 
@@ -78,7 +81,7 @@ bot.command("start", async (ctx) => {
         return;
     }
 
-    [user, err] = await User.new(ctx.msg.from.id);
+    [user, err] = await createUser(ctx.msg.from.id);
     if (err !== null) {
         await ctx.reply(responseInternalErrorOnStart, {reply_markup: keyboardOnStart});
         return;
@@ -102,47 +105,62 @@ bot.use(async (ctx: SafeUserStateContext, next) => {
  * Start branch to add new word
 */
 bot.hears(Command.ADD, async (ctx: SafeUserStateContext) => {
-
     const [user, _] = await ctx.user; // checked with middleware
-    if (user.state !== stateDefault) {
+    if (user.state !== StateDefault) {
         await ctx.reply(responseWrongCommand);
-        const _ = await user.resetState(); // TODO logging for problems
+        const _ = await resetState(user.id); // TODO logging for problems
         return;
     }
 
-    await user.setState(stateTypeWordToAdd, null);
-    await ctx.reply("Type word you would like to add");
+    await setState(user.id, StateTypeWordToAdd, null);
+    await ctx.reply("Type word to add");
 });
 
 /**
  * Start branch to remove word
 */
 bot.hears(Command.REMOVE, async (ctx) => {
-    const [user, _] = await ctx.user; // TODO fix Decorator?
+    const [user, _] = await ctx.user;
+    if (user.state !== StateDefault) {
+        await ctx.reply(responseWrongCommand);
+        const _ = await resetState(user.id); // TODO logging for problems
+        return;
+    }
 
-    await ctx.reply("Hey there");
+    await setState(user.id, StateTypeWordToRemove, null);
+    await ctx.reply(responseTypeWordToRemove);
 });
 
 /**
  * Generic handler to receive any type of text message
 */
 bot.on("message:text", async (ctx) => {
-    const [user, _] = await ctx.user; // TODO fix Decorator?
+    const [user, _] = await ctx.user;
 
     const message = ctx.message;
+    if (typeof message !== "string") {
+        await ctx.reply("Sorry, I don't understand you. Please try again");
+        return;
+    }
     let errSwith: Err = null;
+
     switch (user.state) {
-    case stateTypeWordToAdd:
-        // TODO
+    case StateTypeWordToAdd:
+        errSwith = await setState(user.id, StateTypeDefinitionToAdd, { word: message });
+        if (errSwith !== null) {
+            await ctx.reply(responseUnknownError);
+            break;
+        }
+        await ctx.reply(responseTypeDefinitionToAdd);
         break;
-    case stateTypeDefinitionToAdd:
-        // TODO
+    case StateTypeDefinitionToAdd:
+        // save pair word - definition to db
         break;
-    case stateTypeWordToRemove:
+    case StateTypeWordToRemove:
         // TODO
         break;
     default:
-        errSwith = await user.resetState();
+        errSwith = await resetState(user.id);
         if (errSwith !== null) {
             // logging
         }

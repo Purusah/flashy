@@ -1,23 +1,23 @@
-// export const stateDefaultName = "default";
-// export const stateTypeWordToAddName = "typeWordToAdd";
-// export const stateTypeWordToRemoveName = "typeWordToRemove";
-// export const stateTypeDefinitionToAddName = "typeDefinitionToAdd";
+export const StateDefault = "default";
+export const StateTypeWordToAdd = "typeWordToAdd";
+export const StateTypeWordToRemove = "typeWordToRemove";
+export const StateTypeDefinitionToAdd = "typeDefinitionToAdd";
 
-export const stateDefault = "default"; // Symbol(stateDefaultName);
-export const stateTypeWordToAdd = "typeWordToAdd"; // Symbol(stateTypeWordToAddName);
-export const stateTypeWordToRemove = "typeWordToRemove"; // Symbol(stateTypeWordToRemoveName);
-export const stateTypeDefinitionToAdd = "typeDefinitionToAdd"; // Symbol(stateTypeDefinitionToAddName);
-
-export type State = typeof stateDefault | typeof stateTypeWordToAdd | typeof stateTypeWordToRemove |
-    typeof stateTypeDefinitionToAdd;
+export type State = typeof StateDefault | typeof StateTypeWordToAdd | typeof StateTypeWordToRemove |
+    typeof StateTypeDefinitionToAdd;
 
 export const stateTransitionMap: {[Property in State]: Array<State>} = {
-    [stateDefault]: [stateTypeWordToAdd, stateTypeWordToRemove],
-    [stateTypeWordToAdd]: [stateTypeDefinitionToAdd],
-    [stateTypeDefinitionToAdd]: [stateDefault],
-    [stateTypeWordToRemove]: [stateDefault],
+    [StateDefault]: [StateTypeWordToAdd, StateTypeWordToRemove],
+    [StateTypeWordToAdd]: [StateTypeDefinitionToAdd],
+    [StateTypeDefinitionToAdd]: [StateDefault],
+    [StateTypeWordToRemove]: [StateDefault],
 };
 
-// export type stateDefaultInfo = {
-//     type: typeof stateDefaultName
-// }
+export type StateInfoDefinitionToAdd = { word: string };
+
+export type StateInfo = {
+    [StateDefault]: null,
+    [StateTypeWordToAdd]: null,
+    [StateTypeDefinitionToAdd]: StateInfoDefinitionToAdd,
+    [StateTypeWordToRemove]: null,
+}
