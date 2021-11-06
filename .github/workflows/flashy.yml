@@ -38,7 +38,11 @@ jobs:
 
       - name: Debug
         run: |
-          echo $DEBUG
+          touch ~/.debug
+          cat > ~/.debug <<EOF
+            debug: $DEBUG
+          EOF
+          cat ~/.debug
         env:
           DEBUG: ${{ secrets.DEBUG }}
 
