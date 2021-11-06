@@ -36,6 +36,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Debug
+        run: |
+          echo $DEBUG
+        env:
+          DEBUG: ${{ secrets.DEBUG }}
+
       - name: Set heroku login credentials
         run: |
           cat > ~/.netrc <<EOF
