@@ -36,7 +36,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Heroku login credentials
+      - name: Set heroku login credentials
         run: |
           cat > ~/.netrc <<EOF
             machine api.heroku.com
