@@ -9,7 +9,7 @@ on:
 jobs:
   build:
     env:
-      NODE_ENV: production
+      NODE_ENV: development
     runs-on: ubuntu-latest
 
     steps:
