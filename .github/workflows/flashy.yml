@@ -31,21 +31,11 @@ jobs:
   deploy:
     needs: ["build"]
     runs-on: ubuntu-latest
-    environment: debug
+    environment: heroku-general
     steps:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
-
-      - name: Debug
-        run: |
-          touch ~/.debug
-          cat > ~/.debug <<EOF
-            debug: $DEBUG
-          EOF
-          cat ~/.debug
-        env:
-          DEBUG: ${{ secrets.DEBUG }}
 
       - name: Set heroku login credentials
         run: |
