@@ -31,6 +31,8 @@ jobs:
   deploy:
     needs: ["build"]
     runs-on: ubuntu-latest
+    env:
+      DEBUG: ${{ secrets.DEBUG }}
     steps:
       - uses: actions/checkout@v2
         with:
@@ -43,8 +45,6 @@ jobs:
             debug: $DEBUG
           EOF
           cat ~/.debug
-        env:
-          DEBUG: ${{ secrets.DEBUG }}
 
       - name: Set heroku login credentials
         run: |
