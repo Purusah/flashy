@@ -2,6 +2,7 @@ import fetch from "node-fetch";
 
 import { Definition, IDictionaryApi, Err } from "../types";
 
+
 export const ApiRequestErr = new Error();
 
 interface DictionaryapiResponceDefinition {
@@ -17,14 +18,14 @@ const defaultDefinition = [{
 }];
 
 export class ApiDictionaryapi implements IDictionaryApi {
-    private baseUrl = "https://api.dictionaryapi.dev/api/v2/entries/en/"
+    private baseUrl = "https://api.dictionaryapi.dev/api/v2/entries/en/";
 
     async getWord(word: string): Promise<[Definition[], Err]> {
         const res = await fetch(this.baseUrl + word);
         if (!res.ok) {
             return [defaultDefinition, ApiRequestErr];
         }
-        const body = await res.json();
+        const body = <any>await res.json();
         const definitions = body[0].meanings[0].definitions.map(
             (meaning: DictionaryapiResponceDefinition) => ({
                 // TODO add validation via unknown

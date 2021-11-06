@@ -1,5 +1,6 @@
 import { Definition, Err } from "../types";
 
+
 interface WordData {
     word: string
     definitions: Definition[]

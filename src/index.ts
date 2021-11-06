@@ -1,28 +1,26 @@
-import { Keyboard, webhookCallback } from "grammy";
-import http from "http";
-import { Pool } from "pg";
+import http from "node:http";
+import { webhookCallback } from "grammy";
+
+import { Command } from "./bot/commands";
+import { mwCheckUserState, mwErrorCatch } from "./bot/context";
 import {
-    Command,
-    responseGreeting,
-    responseGreetingAgain,
-    responseInternalErrorOnStart,
-    responseTypeDefinitionToAdd,
-    responseTypeWordToRemove,
-    responseUnknownError,
-    responseUnknownUser,
-    responseWrongCommand
-} from "./bot/commands";
-import { SafeUserStateContext } from "./bot/context";
-import { Bot } from "./lib/bot";
+    onAddHanlder,
+    onCheckDefinition,
+    onCheckWord,
+    onCheckWordOrDefinition,
+    onMessageText,
+    onRemoveHandler,
+    onStart,
+} from "./bot/handlers";
+
+import { Bot, BotContext } from "./lib/bot";
 import {
     StateDefault,
     StateTypeDefinitionToAdd,
     StateTypeWordToAdd,
     StateTypeWordToRemove
 } from "./lib/domain/state";
-import { createUser, resetState, setState } from "./lib/domain/user";
-import { NoRowsFoundError, pool } from "./lib/storage";
-import { Err } from "./lib/types";
+import { pool } from "./lib/storage";
 
 
 const isProduction = process.env.NODE_ENV === "production";
@@ -44,13 +42,9 @@ const app = http.createServer(async (req, res) => {
     res.end();
 });
 
-const storage = new Pool();
-
 const bot = new Bot(
     BOT_TOKEN,
-    storage,
     {
-        ContextConstructor: SafeUserStateContext,
         client: {
             baseFetchConfig: {
                 compress: true,
@@ -60,112 +54,91 @@ const bot = new Bot(
     },
 );
 
-const keyboardOnStart = new Keyboard()
-    .text(Command.ADD).row()
-    .text(Command.REMOVE).row();
-
 /**
  * Command to start using bot. Add user to database.
 */
-bot.command("start", async (ctx) => {
-    if (ctx.msg.from === undefined || ctx.msg.from.is_bot) {
-        return;
-    }
-
-    let [user, err] = await ctx.user;
-    if (err === null) {
-        await ctx.reply(responseGreetingAgain);
-        return;
-    } else if (err !== NoRowsFoundError) {
-        await ctx.reply(responseInternalErrorOnStart, {reply_markup: keyboardOnStart});
-        return;
-    }
-
-    [user, err] = await createUser(ctx.msg.from.id);
-    if (err !== null) {
-        await ctx.reply(responseInternalErrorOnStart, {reply_markup: keyboardOnStart});
-        return;
-    }
-    await ctx.reply(responseGreeting, {reply_markup: keyboardOnStart});
-});
-
-/**
- * Middleware to cut off unknown user and ask them to type /start
-*/
-bot.use(async (ctx: SafeUserStateContext, next) => {
-    const [_, err] = await ctx.user;
-    if (err !== null) {
-        await ctx.reply(responseUnknownUser);
-        return;
-    }
-    await next();
+bot.command("start", async (ctx: BotContext) => {
+    await onStart(ctx);
 });
 
 /**
  * Start branch to add new word
 */
-bot.hears(Command.ADD, async (ctx: SafeUserStateContext) => {
-    const [user, _] = await ctx.user; // checked with middleware
-    if (user.state !== StateDefault) {
-        await ctx.reply(responseWrongCommand);
-        const _ = await resetState(user.id); // TODO logging for problems
-        return;
-    }
-
-    await setState(user.id, StateTypeWordToAdd, null);
-    await ctx.reply("Type word to add");
+bot.hears(Command.ADD, async (ctx) => {
+    const h = await mwErrorCatch(
+        await mwCheckUserState(
+            new Set([StateDefault]),
+            onAddHanlder,
+        )
+    );
+    await h(ctx);
 });
+
 
 /**
  * Start branch to remove word
 */
 bot.hears(Command.REMOVE, async (ctx) => {
-    const [user, _] = await ctx.user;
-    if (user.state !== StateDefault) {
-        await ctx.reply(responseWrongCommand);
-        const _ = await resetState(user.id); // TODO logging for problems
-        return;
-    }
+    const h = await mwErrorCatch(
+        await mwCheckUserState(
+            new Set([StateDefault]),
+            onRemoveHandler,
+        )
+    );
+    await h(ctx);
+});
 
-    await setState(user.id, StateTypeWordToRemove, null);
-    await ctx.reply(responseTypeWordToRemove);
+/**
+ * Get random word
+*/
+bot.hears(Command.CHECK_WORD, async (ctx) => {
+    const h = await mwErrorCatch(
+        await mwCheckUserState(
+            new Set([StateDefault]),
+            onCheckWord,
+        )
+    );
+    await h(ctx);
+});
+
+/**
+ * Get random definition
+*/
+bot.hears(Command.CHECK_DEFINITION, async (ctx) => {
+    const h = await mwErrorCatch(
+        await mwCheckUserState(
+            new Set([StateDefault]),
+            onCheckDefinition,
+        )
+    );
+    await h(ctx);
+});
+
+/**
+ * Get random definition
+*/
+bot.hears(Command.CHECK_WORD_DEFINITION, async (ctx) => {
+    const h = await mwErrorCatch(
+        await mwCheckUserState(
+            new Set([StateDefault]),
+            onCheckWordOrDefinition,
+        )
+    );
+    await h(ctx);
 });
 
 /**
  * Generic handler to receive any type of text message
 */
 bot.on("message:text", async (ctx) => {
-    const [user, _] = await ctx.user;
+    const h = await mwErrorCatch(
+        await mwCheckUserState(
+            new Set([StateTypeWordToAdd, StateTypeDefinitionToAdd, StateTypeWordToRemove]),
+            onMessageText,
+        )
+    );
+    await h(ctx);
 
-    const message = ctx.message;
-    if (typeof message !== "string") {
-        await ctx.reply("Sorry, I don't understand you. Please try again");
-        return;
-    }
-    let errSwith: Err = null;
-
-    switch (user.state) {
-    case StateTypeWordToAdd:
-        errSwith = await setState(user.id, StateTypeDefinitionToAdd, { word: message });
-        if (errSwith !== null) {
-            await ctx.reply(responseUnknownError);
-            break;
-        }
-        await ctx.reply(responseTypeDefinitionToAdd);
-        break;
-    case StateTypeDefinitionToAdd:
-        // save pair word - definition to db
-        break;
-    case StateTypeWordToRemove:
-        // TODO
-        break;
-    default:
-        errSwith = await resetState(user.id);
-        if (errSwith !== null) {
-            // logging
-        }
-        await ctx.reply("Sorry, I don't understand you. Please try again");
-    }
 });
 
 /**
