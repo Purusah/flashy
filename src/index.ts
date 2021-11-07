@@ -160,7 +160,7 @@ if (isProduction) {
     if (BOT_URL === undefined || Number.isNaN(BOT_PORT)) {
         throw new Error(`Bad server params host: ${BOT_URL} port: ${BOT_PORT}`);
     }
-    app.listen(BOT_PORT, BOT_URL);
+    app.listen(BOT_PORT);
     bot.api.setWebhook(BOT_URL);
 } else {
     bot.start();
