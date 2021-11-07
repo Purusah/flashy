@@ -25,6 +25,7 @@ import { pool } from "./lib/storage";
 
 const isProduction = process.env.NODE_ENV === "production";
 const BOT_URL = process.env.BOT_URL;
+const BOT_PORT = Number.parseInt(process.env.PORT || "");
 const BOT_TOKEN = process.env.BOT_TOKEN;
 
 if (BOT_TOKEN === undefined) {
@@ -155,8 +156,11 @@ process.once("SIGTERM", async () => {
     await bot.stop();
 });
 
-if (isProduction && BOT_URL !== undefined) {
-    app.listen(433, BOT_URL);
+if (isProduction) {
+    if (BOT_URL === undefined || Number.isNaN(BOT_PORT)) {
+        throw new Error(`Bad server params host: ${BOT_URL} port: ${BOT_PORT}`);
+    }
+    app.listen(BOT_PORT, BOT_URL);
     bot.api.setWebhook(BOT_URL);
 } else {
     bot.start();
