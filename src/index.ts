@@ -1,4 +1,4 @@
-import http from "node:http";
+import https from "node:https";
 import { webhookCallback } from "grammy";
 
 import { Command } from "./bot/commands";
@@ -32,9 +32,9 @@ if (BOT_TOKEN === undefined) {
     process.exit(1);
 }
 
-const app = http.createServer(async (req, res) => {
+const app = https.createServer(async (req, res) => {
     if (req.url === "/webhook") {
-        const handler = await webhookCallback(bot, "http");
+        const handler = await webhookCallback(bot, "https");
         await handler(req, res);
         return;
     }
@@ -156,7 +156,7 @@ process.once("SIGTERM", async () => {
 });
 
 if (isProduction && BOT_URL !== undefined) {
-    app.listen(80, "0.0.0.0");
+    app.listen(433, BOT_URL);
     bot.api.setWebhook(BOT_URL);
 } else {
     bot.start();
