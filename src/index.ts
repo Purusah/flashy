@@ -1,4 +1,4 @@
-import https from "node:https";
+import http from "node:http";
 import { webhookCallback } from "grammy";
 
 import { Command } from "./bot/commands";
@@ -33,9 +33,10 @@ if (BOT_TOKEN === undefined) {
     process.exit(1);
 }
 
-const app = https.createServer(async (req, res) => {
+const app = http.createServer(async (req, res) => {
+    console.error();
     if (req.url === "/webhook") {
-        const handler = await webhookCallback(bot, "https");
+        const handler = await webhookCallback(bot, "http");
         await handler(req, res);
         return;
     }
