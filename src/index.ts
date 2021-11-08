@@ -35,13 +35,13 @@ if (BOT_TOKEN === undefined) {
 
 const app = http.createServer(async (req, res) => {
     console.error(`${req.method} for ${req.url}`);
-    if (req.url === "/webhook") {
-        const handler = await webhookCallback(bot, "http");
-        await handler(req, res);
-        return;
-    }
-    res.statusCode = 404;
-    res.end();
+    // if (req.url === "/webhook") {
+    const handler = await webhookCallback(bot, "http");
+    await handler(req, res);
+    return;
+    // }
+    // res.statusCode = 404;
+    // res.end();
 });
 
 const onTextMsgAllowedState: Set<State> = new Set(
