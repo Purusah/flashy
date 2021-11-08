@@ -1,4 +1,4 @@
-import http from "node:http";
+import http, { IncomingMessage } from "node:http";
 import { webhookCallback } from "grammy";
 
 import { Command, CommandState } from "./bot/commands";
@@ -36,6 +36,19 @@ if (BOT_TOKEN === undefined) {
 
 const app = http.createServer(async (req, res) => {
     if (req.url === BOT_PATH) {
+        const buffers = [];
+
+        for await (const chunk of req) {
+            buffers.push(chunk);
+        }
+
+        const data = Buffer.concat(buffers).toString();
+        if (data.length === 0 || !data.startsWith("[") || !data.startsWith("{")) {
+            res.statusCode = 403;
+            res.end();
+            return;
+        }
+        (req as any).body = JSON.parse(data);
         console.info(`${req.method} for ${req.url}`);
         const handler = webhookCallback(bot, "http");
         await handler(req, res);
@@ -168,6 +181,7 @@ if (isProduction) {
         throw new Error(`Bad server params host: ${BOT_URL} port: ${BOT_PORT}`);
     }
     app.listen(BOT_PORT);
+    console.info("BOT START WEB HOOK");
     bot.api.setWebhook(`${BOT_URL}${BOT_PATH}`);
 } else {
     bot.start();
