@@ -43,8 +43,7 @@ const app = http.createServer(async (req, res) => {
         }
 
         const data = Buffer.concat(buffers).toString();
-        console.info(data);
-        if (data.length === 0 || !data.startsWith("[") || !data.startsWith("{")) {
+        if (data.length === 0) {
             res.statusCode = 403;
             res.end();
             return;
