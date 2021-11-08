@@ -35,12 +35,13 @@ if (BOT_TOKEN === undefined) {
 }
 
 const app = http.createServer(async (req, res) => {
-    console.info(`${req.method} for ${req.url}`);
     if (req.url === BOT_PATH) {
+        console.info(`${req.method} for ${req.url}`);
         const handler = webhookCallback(bot, "http");
         await handler(req, res);
         return;
     }
+    console.error(`bad request ${req.method} for ${req.url}`);
     res.statusCode = 404;
     res.end();
 });
