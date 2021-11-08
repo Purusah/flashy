@@ -24,9 +24,10 @@ import { pool } from "./lib/storage";
 
 
 const isProduction = process.env.NODE_ENV === "production";
-const BOT_URL = process.env.BOT_URL;
+const BOT_URL = process.env.DOMAIN;
 const BOT_PORT = Number.parseInt(process.env.PORT || "");
 const BOT_TOKEN = process.env.BOT_TOKEN;
+const BOT_PATH = `/${process.env.BOT_PATH || ""}`;
 
 if (BOT_TOKEN === undefined) {
     console.error("BOT_TOKEN env not set");
@@ -34,14 +35,14 @@ if (BOT_TOKEN === undefined) {
 }
 
 const app = http.createServer(async (req, res) => {
-    console.error(`${req.method} for ${req.url}`);
-    // if (req.url === "/webhook") {
-    const handler = await webhookCallback(bot, "http");
-    await handler(req, res);
-    return;
-    // }
-    // res.statusCode = 404;
-    // res.end();
+    console.info(`${req.method} for ${req.url}`);
+    if (req.url === BOT_PATH) {
+        const handler = webhookCallback(bot, "http");
+        await handler(req, res);
+        return;
+    }
+    res.statusCode = 404;
+    res.end();
 });
 
 const onTextMsgAllowedState: Set<State> = new Set(
@@ -166,7 +167,7 @@ if (isProduction) {
         throw new Error(`Bad server params host: ${BOT_URL} port: ${BOT_PORT}`);
     }
     app.listen(BOT_PORT);
-    bot.api.setWebhook(BOT_URL);
+    bot.api.setWebhook(`${BOT_URL}${BOT_PATH}`);
 } else {
     bot.start();
 }
