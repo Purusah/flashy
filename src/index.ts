@@ -1,7 +1,7 @@
 import http from "node:http";
 import { webhookCallback } from "grammy";
 
-import { Command } from "./bot/commands";
+import { Command, CommandState } from "./bot/commands";
 import { mwCheckUserState, mwErrorCatch } from "./bot/context";
 import {
     onAddHanlder,
@@ -15,7 +15,7 @@ import {
 
 import { Bot, BotContext } from "./lib/bot";
 import {
-    StateDefault,
+    State,
     StateTypeDefinitionToAdd,
     StateTypeWordToAdd,
     StateTypeWordToRemove
@@ -34,7 +34,7 @@ if (BOT_TOKEN === undefined) {
 }
 
 const app = http.createServer(async (req, res) => {
-    console.error();
+    console.error(`${req.method} for ${req.url}`);
     if (req.url === "/webhook") {
         const handler = await webhookCallback(bot, "http");
         await handler(req, res);
@@ -43,6 +43,10 @@ const app = http.createServer(async (req, res) => {
     res.statusCode = 404;
     res.end();
 });
+
+const onTextMsgAllowedState: Set<State> = new Set(
+    [StateTypeWordToAdd, StateTypeDefinitionToAdd, StateTypeWordToRemove],
+);
 
 const bot = new Bot(
     BOT_TOKEN,
@@ -69,7 +73,7 @@ bot.command("start", async (ctx: BotContext) => {
 bot.hears(Command.ADD, async (ctx) => {
     const h = await mwErrorCatch(
         await mwCheckUserState(
-            new Set([StateDefault]),
+            CommandState["ADD"],
             onAddHanlder,
         )
     );
@@ -83,7 +87,7 @@ bot.hears(Command.ADD, async (ctx) => {
 bot.hears(Command.REMOVE, async (ctx) => {
     const h = await mwErrorCatch(
         await mwCheckUserState(
-            new Set([StateDefault]),
+            CommandState["REMOVE"],
             onRemoveHandler,
         )
     );
@@ -96,7 +100,7 @@ bot.hears(Command.REMOVE, async (ctx) => {
 bot.hears(Command.CHECK_WORD, async (ctx) => {
     const h = await mwErrorCatch(
         await mwCheckUserState(
-            new Set([StateDefault]),
+            CommandState["CHECK_WORD"],
             onCheckWord,
         )
     );
@@ -109,7 +113,7 @@ bot.hears(Command.CHECK_WORD, async (ctx) => {
 bot.hears(Command.CHECK_DEFINITION, async (ctx) => {
     const h = await mwErrorCatch(
         await mwCheckUserState(
-            new Set([StateDefault]),
+            CommandState["CHECK_DEFINITION"],
             onCheckDefinition,
         )
     );
@@ -122,7 +126,7 @@ bot.hears(Command.CHECK_DEFINITION, async (ctx) => {
 bot.hears(Command.CHECK_WORD_DEFINITION, async (ctx) => {
     const h = await mwErrorCatch(
         await mwCheckUserState(
-            new Set([StateDefault]),
+            CommandState["CHECK_WORD_DEFINITION"],
             onCheckWordOrDefinition,
         )
     );
@@ -135,7 +139,7 @@ bot.hears(Command.CHECK_WORD_DEFINITION, async (ctx) => {
 bot.on("message:text", async (ctx) => {
     const h = await mwErrorCatch(
         await mwCheckUserState(
-            new Set([StateTypeWordToAdd, StateTypeDefinitionToAdd, StateTypeWordToRemove]),
+            onTextMsgAllowedState,
             onMessageText,
         )
     );
