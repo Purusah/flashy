@@ -1,4 +1,4 @@
-import http, { IncomingMessage } from "node:http";
+import http from "node:http";
 import { webhookCallback } from "grammy";
 
 import { Command, CommandState } from "./bot/commands";
@@ -20,6 +20,7 @@ import {
     StateTypeWordToAdd,
     StateTypeWordToRemove
 } from "./lib/domain/state";
+import { getLogger } from "./lib/logger";
 import { pool } from "./lib/storage";
 
 
@@ -28,36 +29,14 @@ const BOT_URL = process.env.DOMAIN;
 const BOT_PORT = Number.parseInt(process.env.PORT || "");
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const BOT_PATH = `/${process.env.BOT_PATH || ""}`;
+const BOT_MAX_REQUEST_BODY_SIZE = 1_000_000; // 1MB
+
+const logger = getLogger("index");
 
 if (BOT_TOKEN === undefined) {
-    console.error("BOT_TOKEN env not set");
+    logger.error("BOT_TOKEN not set");
     process.exit(1);
 }
-
-const app = http.createServer(async (req, res) => {
-    if (req.url === BOT_PATH) {
-        const buffers = [];
-
-        for await (const chunk of req) {
-            buffers.push(chunk);
-        }
-
-        const data = Buffer.concat(buffers).toString();
-        if (data.length === 0) {
-            res.statusCode = 403;
-            res.end();
-            return;
-        }
-        (req as any).body = JSON.parse(data);
-        console.info(`${req.method} for ${req.url}`);
-        const handler = webhookCallback(bot, "http");
-        await handler(req, res);
-        return;
-    }
-    console.error(`bad request ${req.method} for ${req.url}`);
-    res.statusCode = 404;
-    res.end();
-});
 
 const onTextMsgAllowedState: Set<State> = new Set(
     [StateTypeWordToAdd, StateTypeDefinitionToAdd, StateTypeWordToRemove],
@@ -176,13 +155,53 @@ process.once("SIGTERM", async () => {
     await bot.stop();
 });
 
+const app = http.createServer(async (req, res) => {
+    if (req.url !== BOT_PATH) {
+        logger.warning(`bad request ${req.method} ${req.url}`);
+        res.statusCode = 404;
+        res.end();
+
+    }
+    let buffersByteLength = 0;
+    const buffers: Uint8Array[] = [];
+
+    for await (const chunk of req) {
+        buffers.push(chunk);
+
+        buffersByteLength += (<Uint8Array>chunk).byteLength;
+        if (buffersByteLength > BOT_MAX_REQUEST_BODY_SIZE) {
+            logger.warning(`request length exceed limit ${BOT_MAX_REQUEST_BODY_SIZE} MB`);
+            res.statusCode = 403;
+            res.end();
+            return;
+        }
+    }
+
+    if (buffersByteLength === 0) {
+        logger.warning("request 0 length");
+        res.statusCode = 403;
+        res.end();
+        return;
+    }
+
+    const data = Buffer.concat(buffers).toString();
+
+    Object.defineProperties(req, {
+        body: JSON.parse(data),
+    });
+    const handler = webhookCallback(bot, "http");
+    await handler(req, res);
+});
+
 if (isProduction) {
     if (BOT_URL === undefined || Number.isNaN(BOT_PORT)) {
         throw new Error(`Bad server params host: ${BOT_URL} port: ${BOT_PORT}`);
     }
+
     app.listen(BOT_PORT);
-    console.info("BOT START WEB HOOK");
+    logger.info("bot started on web hooks");
     bot.api.setWebhook(`${BOT_URL}${BOT_PATH}`);
 } else {
+    logger.info("bot started on long pooling");
     bot.start();
 }
