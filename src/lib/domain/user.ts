@@ -1,5 +1,5 @@
 import { QueryResult } from "pg";
-import { NoRowsFoundError, pool, StorageInternalError } from "../storage";
+import { getStorage, NoRowsFoundError, StorageInternalError } from "../storage";
 import { Err } from "../types";
 
 import {
@@ -74,7 +74,7 @@ export const getUser = async (userId: number): Promise<[User<State>, Err]> => {
     const user = getDefaultUser(StateDefault);
     let res: QueryResult<UserTableRow> | null = null;
     try {
-        res = await pool.query<UserTableRow>(
+        res = await getStorage().query<UserTableRow>(
             "SELECT user_id, state, state_data FROM users WHERE user_id = $1;",
             [userId]
         );
@@ -124,7 +124,7 @@ export const resetState = async (userId: number): Promise<Err> => {
 };
 
 export const setState = async <T extends State>(userId: number, state: T, info: StateInfo[T]): Promise<Err> => {
-    const res = await pool.query(
+    const res = await getStorage().query(
         "UPDATE users SET state = $1, state_data = $2 WHERE user_id = $3;",
         [state, info, userId]
     );
@@ -139,7 +139,7 @@ export const createUser = async (userId: number): Promise<[User<typeof StateDefa
     let res: QueryResult<{id: number}> | null = null;
 
     try {
-        res = await pool.query("INSERT INTO users (userId) VALUES ($1) RETURNING id;", [userId]);
+        res = await getStorage().query("INSERT INTO users (userId) VALUES ($1) RETURNING id;", [userId]);
         if (res.rowCount !== 1) {
             // TODO logging
             return [getDefaultUser(StateDefault), StorageInternalError];

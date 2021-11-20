@@ -2,5 +2,5 @@
     "watch": ["src"],
     "ext": ".ts,.js",
     "ignore": ["dist", "build", "migrations", "node_modules", "./.*", "*.md"],
-    "exec": "tsc && ./dist/index.js"
+    "exec": "npm run build && node ./dist/index.js"
 }

@@ -21,7 +21,7 @@ import {
     StateTypeWordToRemove
 } from "./lib/domain/state";
 import { getLogger } from "./lib/logger";
-import { pool } from "./lib/storage";
+import { initStorage, getStorage } from "./lib/storage";
 
 
 const isProduction = process.env.NODE_ENV === "production";
@@ -30,11 +30,17 @@ const BOT_PORT = Number.parseInt(process.env.PORT || "");
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const BOT_PATH = `/${process.env.BOT_PATH || ""}`;
 const BOT_MAX_REQUEST_BODY_SIZE = 1_000_000; // 1MB
+const BOT_STORAGE_URL = process.env.DATABASE_URL;
 
 const logger = getLogger("index");
 
 if (BOT_TOKEN === undefined) {
     logger.error("BOT_TOKEN not set");
+    process.exit(1);
+}
+
+if (BOT_STORAGE_URL === undefined) {
+    logger.error("DATABASE_URL not set");
     process.exit(1);
 }
 
@@ -53,6 +59,8 @@ const bot = new Bot(
         },
     },
 );
+
+initStorage({connectionString: BOT_STORAGE_URL});
 
 /**
  * Command to start using bot. Add user to database.
@@ -146,12 +154,12 @@ bot.on("message:text", async (ctx) => {
 */
 process.once("SIGINT", async () => {
     await app.close();
-    await pool.end();
+    await getStorage().end();
     await bot.stop();
 });
 process.once("SIGTERM", async () => {
     await app.close();
-    await pool.end();
+    await getStorage().end();
     await bot.stop();
 });
 
