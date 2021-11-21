@@ -1,6 +1,6 @@
 import { randomInt } from "node:crypto";
 
-import { Definition, DefinitionDefault, Err } from "../types";
+import { Definition, DefinitionDefault, Err } from "../lib/types";
 
 const UnknowsVovabularyError = new Error("upredictable error");
 const EmptyVocabularyError = new Error("user vocabulary empty");

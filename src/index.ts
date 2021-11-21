@@ -1,8 +1,8 @@
 import http from "node:http";
 import { webhookCallback } from "grammy";
 
-import { Command, CommandState } from "./bot/commands";
-import { mwCheckUserState, mwErrorCatch } from "./bot/context";
+import { Command, CommandState } from "./app/bot/commands";
+import { mwCheckUserState, mwErrorCatch } from "./app/bot/context";
 import {
     onAddHanlder,
     onCheckDefinition,
@@ -11,7 +11,7 @@ import {
     onMessageText,
     onRemoveHandler,
     onStart,
-} from "./bot/handlers";
+} from "./app/bot/handlers";
 
 import { Bot, BotContext } from "./lib/bot";
 import {
@@ -19,7 +19,7 @@ import {
     StateTypeDefinitionToAdd,
     StateTypeWordToAdd,
     StateTypeWordToRemove
-} from "./lib/domain/state";
+} from "./domain/state";
 import { getLogger } from "./lib/logger";
 import { initStorage, getStorage } from "./lib/storage";
 
@@ -31,6 +31,7 @@ const BOT_TOKEN = process.env.BOT_TOKEN;
 const BOT_PATH = `/${process.env.BOT_PATH || ""}`;
 const BOT_MAX_REQUEST_BODY_SIZE = 1_000_000; // 1MB
 const BOT_STORAGE_URL = process.env.DATABASE_URL;
+const BOT_IS_DEBUG = process.env.BOT_IS_DEBUG;
 
 const logger = getLogger("index");
 
@@ -60,7 +61,10 @@ const bot = new Bot(
     },
 );
 
-initStorage({connectionString: BOT_STORAGE_URL});
+initStorage({
+    connectionString: BOT_STORAGE_URL,
+    ssl: (BOT_IS_DEBUG === "1") ? undefined : {rejectUnauthorized: false}
+});
 
 /**
  * Command to start using bot. Add user to database.

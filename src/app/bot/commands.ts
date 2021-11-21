@@ -1,4 +1,4 @@
-import { State, StateDefault } from "../lib/domain/state";
+import { State, StateDefault } from "../../domain/state";
 
 export type Commands = "ADD" | "REMOVE" | "CHECK_WORD" | "CHECK_DEFINITION" | "CHECK_WORD_DEFINITION";
 
@@ -19,7 +19,6 @@ export const CommandState: {[Property in Commands]: Set<State>} = {
 };
 
 export const responseWrongCommand = "Sorry, I don't understand you, please, try again";
-export const responseInternalErrorOnStart = "Sorry, I can't start for now. Please, try again later";
 export const responseUnknownUser = "Please, type /start to use bot";
 export const responseGreeting = "Nice to meet you!";
 export const responseGreetingAgain = "Nice to see you again!";

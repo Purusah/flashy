@@ -1,4 +1,4 @@
-import { Definition, Err } from "../types";
+import { Definition, Err } from "../lib/types";
 
 
 interface WordData {

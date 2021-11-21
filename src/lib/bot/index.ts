@@ -5,8 +5,8 @@ import { Message, User } from "grammy/out/platform.node";
 export interface BotConfig<C extends Context> extends GrammyConfig<C> {}
 
 export class BotError extends Error {}
-export class UnacceptableUserError extends Error {}
-export class UnacceptableMessageError extends Error {}
+export class UnacceptableUserError extends BotError {}
+export class UnacceptableMessageError extends BotError {}
 
 export class BotContext extends Context {
     override get from(): User {
