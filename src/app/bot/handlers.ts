@@ -7,19 +7,22 @@ import {
     responseTypeDefinitionToAdd,
     responseTypeWordToAdd,
     responseTypeWordToRemove,
-    responseUnknownError
 } from "./commands";
 
-import { BotContext } from "../../lib/bot";
-import { StateTypeDefinitionToAdd, StateTypeWordToAdd, StateTypeWordToRemove } from "../../domain/state";
+import {
+    StateDataCheckMap,
+    StateTypeDefinitionToAdd,
+    StateTypeWordToAdd,
+    StateTypeWordToRemove
+} from "../../domain/state";
 import { createUser, getUser, resetState, setState, User } from "../../domain/user";
+import { BotContext } from "../../lib/bot";
 import { getLogger } from "../../lib/logger";
-import { NoRowsFoundError } from "../../lib/storage";
-import { Err } from "../../lib/types";
 
 import { BotServerError } from "./errors";
 import { DomainStorageStateError, DomainUserNotFoundError, DomainUserStateError } from "../../domain/errors";
 import { HandlerWithUser } from "./context";
+import { createLearningPair } from "../../domain/vocabulary";
 
 const logger = getLogger("bot/handlers");
 
@@ -83,6 +86,9 @@ export const onStart = async (ctx: BotContext): Promise<void> => {
     await ctx.reply(responseGreetingAgain, {reply_markup: keyboardOnStart});
 };
 
+/**
+ * @throws {DomainStorageStateError} on user state don't match state info
+ */
 export const onMessageText = async (ctx: BotContext, user: User): Promise<void> => {
     const message = ctx.message?.text;
     if (message === undefined) {
@@ -90,30 +96,26 @@ export const onMessageText = async (ctx: BotContext, user: User): Promise<void> 
         return;
     }
 
-    try {
-        switch (user.state) {
-        case StateTypeWordToAdd:
-            await setState(user.id, StateTypeDefinitionToAdd, { word: message });
-            await ctx.reply(responseTypeDefinitionToAdd);
-            break;
-        case StateTypeDefinitionToAdd:
-            // save pair word - definition to db
-            break;
-        case StateTypeWordToRemove:
-            // TODO
-            break;
-        default:
-            await ctx.reply("Sorry, I don't understand you. Please try again");
+    switch (user.state) {
+    case StateTypeWordToAdd:
+        await setState(user.id, StateTypeDefinitionToAdd, { word: message });
+        await ctx.reply(responseTypeDefinitionToAdd);
+        break;
+    case StateTypeDefinitionToAdd: {
+        const checkGuard = StateDataCheckMap[user.state];
+        if (checkGuard(user.stateInfo)) {
+            await createLearningPair({userId: user.id, word: user.stateInfo.word, definition: message});
+            await resetState(user.id);
+            return;
         }
-    } catch (e) {
-        if (e instanceof DomainStorageStateError) {
-            throw new BotServerError("Storage error");
-        }
-        if (e instanceof DomainUserNotFoundError) {
-            throw new BotServerError("Storage error");
-        }
-        if (e instanceof DomainUserStateError) {
-            throw new BotServerError("Storage error");
-        }
+        throw new DomainStorageStateError(
+            `user state(${user.state}) not match state info(${JSON.stringify(user.stateInfo)})`
+        );
+    }
+    case StateTypeWordToRemove:
+        // TODO
+        break;
+    default:
+        await ctx.reply("Sorry, I don't understand you. Please try again");
     }
 };

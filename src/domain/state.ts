@@ -28,7 +28,7 @@ export const StateDataCheckMap = {
     [StateDefault]: (data: any): data is StateInfo[typeof StateDefault] => data === null,
     [StateTypeWordToAdd]: (data: any): data is StateInfo[typeof StateTypeWordToAdd] => data === null,
     [StateTypeDefinitionToAdd]: (data: any): data is StateInfoDefinitionToAdd => {
-        if (data?.word === "string") {
+        if (typeof data?.word === "string") {
             return true;
         }
         return false;

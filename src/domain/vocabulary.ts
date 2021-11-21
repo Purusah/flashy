@@ -1,5 +1,6 @@
 import { randomInt } from "node:crypto";
 
+import { getStorage } from "../lib/storage";
 import { Definition, DefinitionDefault, Err } from "../lib/types";
 
 const UnknowsVovabularyError = new Error("upredictable error");
@@ -62,3 +63,14 @@ export class UserVocabulary {
         this.vocabulary.push([word, definition]);
     }
 }
+
+export const createLearningPair = async (
+    updateData: {userId: number, word: string, definition: string}
+): Promise<void> => {
+    const {userId, word, definition} = updateData;
+
+    await getStorage().query(
+        "INSERT INTO definitions (user_id, word, definition) VALUES ($1, $2, $3);",
+        [userId, word, definition]
+    );
+};
