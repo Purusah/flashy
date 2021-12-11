@@ -69,7 +69,7 @@ export const createUser = async (userId: number): Promise<[User, Err]> => {
     let res: QueryResult<{id: number}> | null = null;
 
     try {
-        res = await getStorage().query("INSERT INTO users (userId) VALUES ($1) RETURNING id;", [userId]);
+        res = await getStorage().query("INSERT INTO users (user_id) VALUES ($1) RETURNING id;", [userId]);
         if (res.rowCount !== 1) {
             // TODO logging
             return [getDefaultUser(), StorageInternalError];

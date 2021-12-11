@@ -4,7 +4,7 @@ import { webhookCallback } from "grammy";
 import { Command, CommandState } from "./app/bot/commands";
 import { mwCheckUserState, mwErrorCatch } from "./app/bot/context";
 import {
-    onAddHanlder,
+    onAddHandler,
     onCheckDefinition,
     onCheckWord,
     onCheckWordOrDefinition,
@@ -80,7 +80,7 @@ bot.hears(Command.ADD, async (ctx) => {
     const h = await mwErrorCatch(
         await mwCheckUserState(
             CommandState["ADD"],
-            onAddHanlder,
+            onAddHandler,
         )
     );
     await h(ctx);

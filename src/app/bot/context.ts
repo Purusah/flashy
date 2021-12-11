@@ -21,6 +21,9 @@ export const mwErrorCatch = async (handler: Handler): Promise<Handler> => {
             await handler(ctx);
         } catch (e) {
             logger.error("middleware error catch", e);
+            if (typeof ctx.from.id === "number") {
+                await resetState(ctx.from.id);
+            }
             await ctx.reply(responseUnknownError);
         }
     };

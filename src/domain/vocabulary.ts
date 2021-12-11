@@ -1,9 +1,9 @@
 import { randomInt } from "node:crypto";
 
-import { getStorage } from "../lib/storage";
+import { ERROR_CODES, getStorage, isDatabaseError } from "../lib/storage";
 import { Definition, DefinitionDefault, Err } from "../lib/types";
 
-const UnknowsVovabularyError = new Error("upredictable error");
+const UnknownVocabularyError = new Error("unpredictable error");
 const EmptyVocabularyError = new Error("user vocabulary empty");
 const NoCurrentWordsError = new Error("current word not set");
 
@@ -25,7 +25,7 @@ export class UserVocabulary {
         const word = this.vocabulary[randomInt(0, this.vocabulary.length + 1)];
         if (word === undefined) {
             // should exist
-            return ["", UnknowsVovabularyError];
+            return ["", UnknownVocabularyError];
         }
         this.currentWord = word;
         return [word[0], null];
@@ -39,7 +39,7 @@ export class UserVocabulary {
         const word = this.vocabulary[randomInt(0, this.vocabulary.length + 1)];
         if (word === undefined) {
             // should exist
-            return [DefinitionDefault, UnknowsVovabularyError];
+            return [DefinitionDefault, UnknownVocabularyError];
         }
         this.currentWord = word;
         return [word[1], null];
@@ -64,13 +64,49 @@ export class UserVocabulary {
     }
 }
 
+export interface LearningPair {
+    word: string;
+    definition: string;
+}
+
 export const createLearningPair = async (
     updateData: {userId: number, word: string, definition: string}
 ): Promise<void> => {
     const {userId, word, definition} = updateData;
 
-    await getStorage().query(
-        "INSERT INTO definitions (user_id, word, definition) VALUES ($1, $2, $3);",
-        [userId, word, definition]
+    try {
+        await getStorage().query(
+            "INSERT INTO definitions (user_id, word, definition) VALUES ($1, $2, $3);",
+            [userId, word, definition]
+        );
+    } catch (e) {
+        if (isDatabaseError(e) && e.code !== undefined) {
+            const StorageErrorClass = ERROR_CODES[e.code];
+            if (StorageErrorClass !== undefined) {
+                throw new StorageErrorClass(e);
+            }
+        }
+        throw e;
+    }
+
+};
+
+export const getRandomLearningPair = async (userFilter: {userId: number}): Promise<LearningPair | null> => {
+    const {userId} = userFilter;
+
+    const result = await getStorage().query(
+        "SELECT word, definition FROM definitions WHERE user_id = $1 ORDER BY RANDOM() LIMIT 1;",
+        [userId],
     );
+
+    if (result.rowCount === 0) {
+        return null;
+    }
+
+    const row = result.rows[0];
+
+    return {
+        word: row.word,
+        definition: row.definition,
+    };
 };

@@ -2,18 +2,23 @@ import { Keyboard } from "grammy/out/convenience/keyboard";
 
 import {
     Command,
+    responseCantAddWordTwice,
     responseGreeting,
     responseGreetingAgain,
+    responseNothingAdded,
     responseTypeDefinitionToAdd,
     responseTypeWordToAdd,
     responseTypeWordToRemove,
+    responseWordAdded,
 } from "./commands";
 
 import {
+    State,
     StateDataCheckMap,
     StateTypeDefinitionToAdd,
     StateTypeWordToAdd,
-    StateTypeWordToRemove
+    StateTypeWordToRemove,
+    StateCheckRandomWord,
 } from "../../domain/state";
 import { createUser, getUser, resetState, setState, User } from "../../domain/user";
 import { BotContext } from "../../lib/bot";
@@ -22,7 +27,8 @@ import { getLogger } from "../../lib/logger";
 import { BotServerError } from "./errors";
 import { DomainStorageStateError, DomainUserNotFoundError, DomainUserStateError } from "../../domain/errors";
 import { HandlerWithUser } from "./context";
-import { createLearningPair } from "../../domain/vocabulary";
+import { createLearningPair, getRandomLearningPair } from "../../domain/vocabulary";
+import { DuplicateError, isStorageError } from "../../lib/storage";
 
 const logger = getLogger("bot/handlers");
 
@@ -33,7 +39,7 @@ const keyboardOnStart = new Keyboard()
 /**
  * @throws {BotServerError}
  */
-export const onAddHanlder: HandlerWithUser = async (ctx: BotContext): Promise<void> => {
+export const onAddHandler: HandlerWithUser = async (ctx: BotContext): Promise<void> => {
     try {
         const user = await getUser(ctx.from.id);
 
@@ -59,7 +65,18 @@ export const onRemoveHandler = async (ctx: BotContext, user: User): Promise<void
 };
 
 export const onCheckWord = async (ctx: BotContext, user: User): Promise<void> => {
-    //
+    const maybeLearningPair = await getRandomLearningPair({userId: user.id});
+    if (maybeLearningPair === null) {
+        await ctx.reply(responseNothingAdded);
+        return;
+    }
+
+    await setState<typeof StateCheckRandomWord>(
+        user.id,
+        StateCheckRandomWord,
+        { ref: maybeLearningPair.definition }
+    );
+    await ctx.reply(maybeLearningPair.word);
 };
 
 export const onCheckDefinition = async (ctx: BotContext, user: User): Promise<void> => {
@@ -103,19 +120,32 @@ export const onMessageText = async (ctx: BotContext, user: User): Promise<void> 
         break;
     case StateTypeDefinitionToAdd: {
         const checkGuard = StateDataCheckMap[user.state];
-        if (checkGuard(user.stateInfo)) {
-            await createLearningPair({userId: user.id, word: user.stateInfo.word, definition: message});
-            await resetState(user.id);
-            return;
+        if (!checkGuard(user.stateInfo)) {
+            throw new DomainStorageStateError(
+                `user state(${user.state}) not match state info(${JSON.stringify(user.stateInfo)})`
+            );
         }
-        throw new DomainStorageStateError(
-            `user state(${user.state}) not match state info(${JSON.stringify(user.stateInfo)})`
-        );
+        try {
+            await createLearningPair({userId: user.id, word: user.stateInfo.word, definition: message});
+        } catch (e) {
+            if (isStorageError(e)) {
+                if (e instanceof DuplicateError) {
+                    await resetState(user.id);
+                    await ctx.reply(responseCantAddWordTwice);
+                    break;
+                }
+            }
+            throw e;
+        }
+        await resetState(user.id);
+        await ctx.reply(responseWordAdded);
+        break;
     }
     case StateTypeWordToRemove:
         // TODO
         break;
     default:
+        await resetState(user.id);
         await ctx.reply("Sorry, I don't understand you. Please try again");
     }
 };

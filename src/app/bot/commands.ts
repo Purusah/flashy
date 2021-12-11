@@ -6,7 +6,7 @@ export const Command: {[Property in Commands]: string} = {
     ADD: <Commands>"🟢 Add word",
     REMOVE: <Commands>"🟥 Remove word",
     CHECK_WORD: <Commands>"Study words",
-    CHECK_DEFINITION: <Commands>"Study defintion",
+    CHECK_DEFINITION: <Commands>"Study definition",
     CHECK_WORD_DEFINITION: <Commands>"Study word or defintion",
 };
 
@@ -22,7 +22,10 @@ export const responseWrongCommand = "Sorry, I don't understand you, please, try 
 export const responseUnknownUser = "Please, type /start to use bot";
 export const responseGreeting = "Nice to meet you!";
 export const responseGreetingAgain = "Nice to see you again!";
+export const responseWordAdded = "Your word added";
+export const responseCantAddWordTwice = "Can't add word twice";
 export const responseTypeWordToAdd = "Type word to add";
 export const responseTypeWordToRemove = "Type word to remove";
 export const responseTypeDefinitionToAdd = "Type definition to use";
+export const responseNothingAdded = "Nothing to show";
 export const responseUnknownError = "Sorry, something went wrong";

@@ -2,8 +2,8 @@ export const StateDefault = "default";
 export const StateTypeWordToAdd = "typeWordToAdd";
 export const StateTypeWordToRemove = "typeWordToRemove";
 export const StateTypeDefinitionToAdd = "typeDefinitionToAdd";
-export const StateCheckRandomWord = "typeCheckRandomWord";
-export const StateCheckRandomDefinition = "typeCheckRandomDefinition";
+export const StateCheckRandomWord = "checkRandomWord";
+export const StateCheckRandomDefinition = "checkRandomDefinition";
 
 export type State = typeof StateDefault | typeof StateTypeWordToAdd | typeof StateTypeWordToRemove |
     typeof StateTypeDefinitionToAdd | typeof StateCheckRandomWord | typeof StateCheckRandomDefinition;
