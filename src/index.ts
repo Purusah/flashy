@@ -11,6 +11,7 @@ import {
     onCheckWordOrDefinition,
     onMessageText,
     onRemoveHandler,
+    onShowCorrespondingWord,
     onStart,
 } from "./app/bot/handlers";
 
@@ -132,6 +133,19 @@ bot.hears(Command.CANCEL, async (ctx) => {
 });
 
 /**
+ * Return to default keyboard
+*/
+bot.hears(Command.SHOW_CORRESPONDING_WORD, async (ctx) => {
+    const h = await mwErrorCatch(
+        await mwCheckUserState(
+            CommandState["SHOW_CORRESPONDING_WORD"],
+            onShowCorrespondingWord,
+        )
+    );
+    await h(ctx);
+});
+
+/**
  * Get random definition
  * (!) temporary turned off
 */
@@ -241,6 +255,7 @@ if (isProduction) {
 bot.api.setMyCommands([
     { command: "start", description: "(Re)start the bot" },
     { command: "help", description: "Show help text" },
+    // { command: "settings", description: "Open settings" },
 ])
     .then(() => {
         //

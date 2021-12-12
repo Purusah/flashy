@@ -37,5 +37,10 @@ export const StateDataCheckMap: {[key in State]: (data: any) => data is StateInf
         return false;
     },
     [StateTypeWordToRemove]: (data: any): data is StateInfo[typeof StateTypeWordToRemove] => data === null,
-    [StateStudyMode]: (data: any): data is StateInfo[typeof StateStudyMode] => data === null,
+    [StateStudyMode]: (data: any): data is StateInfo[typeof StateStudyMode] => {
+        if (typeof data?.ref === "string") {
+            return true;
+        }
+        return false;
+    },
 };

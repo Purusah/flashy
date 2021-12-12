@@ -1,7 +1,4 @@
-import { Keyboard } from "grammy/out/convenience/keyboard";
-
 import {
-    Command,
     responseCantAddWordTwice,
     responseGreeting,
     responseGreetingAgain,
@@ -12,6 +9,9 @@ import {
     responseTypeWordToRemove,
     responseWordAdded,
 } from "./commands";
+import { HandlerWithUser } from "./context";
+import { BotStateInfoMismatch, BotStateMismatch } from "./errors";
+import { keyboardOnStudy, keyboardOnStart } from "./markup";
 
 import {
     StateDataCheckMap,
@@ -26,20 +26,11 @@ import { getLogger } from "../../lib/logger";
 
 import { BotServerError } from "./errors";
 import { DomainStorageStateError, DomainUserNotFoundError, DomainUserStateError } from "../../domain/errors";
-import { HandlerWithUser } from "./context";
 import { createLearningPair, getRandomLearningPair } from "../../domain/vocabulary";
 import { DuplicateError, isStorageError } from "../../lib/storage";
 
 const logger = getLogger("bot/handlers");
 
-const keyboardOnStart = new Keyboard()
-    .text(Command.ADD).text(Command.REMOVE).row()
-    .text(Command.CHECK_WORD).row();
-
-const keyboardOnStudy = new Keyboard()
-    .text(Command.SHOW_CORRESPONDING_WORD).row()
-    .text(Command.CHECK_NEXT_WORD).row()
-    .text(Command.CANCEL).row();
 /**
  * @throws {BotServerError}
  */
@@ -101,6 +92,23 @@ export const onCheckDefinition = async (ctx: BotContext, user: User): Promise<vo
 export const onCancel = async (ctx: BotContext, user: User): Promise<void> => {
     await resetState(user.id);
     await ctx.reply(responseOkNext, {reply_markup: keyboardOnStart});
+};
+
+export const onShowCorrespondingWord = async (ctx: BotContext, user: User): Promise<void> => {
+    if (user.state !== StateStudyMode) {
+        throw new BotStateMismatch("unexpected state onShowCorrespondingWord", [], user.state);
+    }
+
+    const checkGuard = StateDataCheckMap[user.state];
+    if (!checkGuard(user.stateInfo)) {
+        throw new BotStateInfoMismatch(
+            "unexpected state info onShowCorrespondingWord",
+            "StateInfoStudyMode",
+            user.stateInfo
+        );
+    }
+
+    await ctx.reply(user.stateInfo.ref, {reply_markup: keyboardOnStudy});
 };
 
 export const onCheckWordOrDefinition = async (ctx: BotContext, user: User): Promise<void> => {
