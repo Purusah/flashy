@@ -5,6 +5,7 @@ import { Command, CommandState, onTextMsgAllowedState } from "./app/bot/commands
 import { mwCheckUserState, mwErrorCatch } from "./app/bot/context";
 import {
     onAddHandler,
+    onCancel,
     onCheckDefinition,
     onCheckWord,
     onCheckWordOrDefinition,
@@ -104,7 +105,35 @@ bot.hears(Command.CHECK_WORD, async (ctx) => {
 });
 
 /**
+ * Get next random word
+*/
+bot.hears(Command.CHECK_NEXT_WORD, async (ctx) => {
+    const h = await mwErrorCatch(
+        await mwCheckUserState(
+            CommandState["CHECK_NEXT_WORD"],
+            onCheckWord,
+        )
+    );
+    await h(ctx);
+});
+
+
+/**
+ * Return to default keyboard
+*/
+bot.hears(Command.CANCEL, async (ctx) => {
+    const h = await mwErrorCatch(
+        await mwCheckUserState(
+            CommandState["CANCEL"],
+            onCancel,
+        )
+    );
+    await h(ctx);
+});
+
+/**
  * Get random definition
+ * (!) temporary turned off
 */
 bot.hears(Command.CHECK_DEFINITION, async (ctx) => {
     const h = await mwErrorCatch(
@@ -118,6 +147,7 @@ bot.hears(Command.CHECK_DEFINITION, async (ctx) => {
 
 /**
  * Get random definition
+ * (!) temporary turned off
 */
 bot.hears(Command.CHECK_WORD_DEFINITION, async (ctx) => {
     const h = await mwErrorCatch(
@@ -207,3 +237,14 @@ if (isProduction) {
     logger.info("bot started on long pooling");
     bot.start();
 }
+
+bot.api.setMyCommands([
+    { command: "start", description: "(Re)start the bot" },
+    { command: "help", description: "Show help text" },
+])
+    .then(() => {
+        //
+    })
+    .catch((e) => {
+        logger.error(`set command on start ${e}`);
+    });
