@@ -1,13 +1,23 @@
-import { State, StateDefault } from "../../domain/state";
+import {
+    State,
+    StateDefault,
+    StateTypeDefinitionToAdd,
+    StateTypeWordToAdd,
+    StateTypeWordToRemove,
+} from "../../domain/state";
 
 export type Commands = "ADD" | "REMOVE" | "CHECK_WORD" | "CHECK_DEFINITION" | "CHECK_WORD_DEFINITION";
+
+export const onTextMsgAllowedState: Set<State> = new Set(
+    [StateTypeWordToAdd, StateTypeDefinitionToAdd, StateTypeWordToRemove],
+);
 
 export const Command: {[Property in Commands]: string} = {
     ADD: <Commands>"🟢 Add word",
     REMOVE: <Commands>"🟥 Remove word",
     CHECK_WORD: <Commands>"Study words",
     CHECK_DEFINITION: <Commands>"Study definition",
-    CHECK_WORD_DEFINITION: <Commands>"Study word or defintion",
+    CHECK_WORD_DEFINITION: <Commands>"Study word or definition",
 };
 
 export const CommandState: {[Property in Commands]: Set<State>} = {

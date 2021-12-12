@@ -1,7 +1,7 @@
 import http from "node:http";
 import { webhookCallback } from "grammy";
 
-import { Command, CommandState } from "./app/bot/commands";
+import { Command, CommandState, onTextMsgAllowedState } from "./app/bot/commands";
 import { mwCheckUserState, mwErrorCatch } from "./app/bot/context";
 import {
     onAddHandler,
@@ -14,12 +14,6 @@ import {
 } from "./app/bot/handlers";
 
 import { Bot, BotContext } from "./lib/bot";
-import {
-    State,
-    StateTypeDefinitionToAdd,
-    StateTypeWordToAdd,
-    StateTypeWordToRemove
-} from "./domain/state";
 import { getLogger } from "./lib/logger";
 import { initStorage, getStorage } from "./lib/storage";
 
@@ -44,10 +38,6 @@ if (BOT_STORAGE_URL === undefined) {
     logger.error("DATABASE_URL not set");
     process.exit(1);
 }
-
-const onTextMsgAllowedState: Set<State> = new Set(
-    [StateTypeWordToAdd, StateTypeDefinitionToAdd, StateTypeWordToRemove],
-);
 
 const bot = new Bot(
     BOT_TOKEN,

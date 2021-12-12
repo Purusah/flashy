@@ -13,7 +13,6 @@ import {
 } from "./commands";
 
 import {
-    State,
     StateDataCheckMap,
     StateTypeDefinitionToAdd,
     StateTypeWordToAdd,
