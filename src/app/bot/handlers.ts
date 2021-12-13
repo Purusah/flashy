@@ -8,6 +8,7 @@ import {
     responseTypeWordToAdd,
     responseTypeWordToRemove,
     responseWordAdded,
+    responseWordRemoved,
 } from "./commands";
 import { HandlerWithUser } from "./context";
 import { BotStateInfoMismatch, BotStateMismatch } from "./errors";
@@ -26,8 +27,8 @@ import { getLogger } from "../../lib/logger";
 
 import { BotServerError } from "./errors";
 import { DomainStorageStateError, DomainUserNotFoundError, DomainUserStateError } from "../../domain/errors";
-import { createLearningPair, getRandomLearningPair } from "../../domain/vocabulary";
-import { DuplicateError, isStorageError } from "../../lib/storage";
+import { createLearningPair, getRandomLearningPair, removeLearningPair } from "../../domain/vocabulary";
+import { DuplicateError, isStorageError, NoRowsAffected } from "../../lib/storage";
 
 const logger = getLogger("bot/handlers");
 
@@ -145,7 +146,7 @@ export const onMessageText = async (ctx: BotContext, user: User): Promise<void> 
     case StateTypeWordToAdd:
         await setState(user.id, StateTypeDefinitionToAdd, { word: message });
         await ctx.reply(responseTypeDefinitionToAdd);
-        break;
+        return;
     case StateTypeDefinitionToAdd: {
         const checkGuard = StateDataCheckMap[user.state];
         if (!checkGuard(user.stateInfo)) {
@@ -160,20 +161,22 @@ export const onMessageText = async (ctx: BotContext, user: User): Promise<void> 
                 if (e instanceof DuplicateError) {
                     await resetState(user.id);
                     await ctx.reply(responseCantAddWordTwice);
-                    break;
+                    return;
                 }
             }
             throw e;
         }
         await resetState(user.id);
         await ctx.reply(responseWordAdded);
-        break;
+        return;
     }
     case StateTypeWordToRemove:
-        // TODO
-        break;
-    default:
+        await removeLearningPair({userId: user.id, word: message});
         await resetState(user.id);
+        await ctx.reply(responseWordRemoved);
+        return;
+    default:
+
         await ctx.reply("Sorry, I don't understand you. Please try again");
     }
 };

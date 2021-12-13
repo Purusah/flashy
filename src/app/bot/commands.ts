@@ -44,6 +44,7 @@ export const CommandState: {[Property in Commands]: Set<State>} = {
 
 export const responseWrongCommand = "Oops, let's try again";
 export const responseUnknownUser = "Please, type /start to use bot";
+export const responseWordRemoved = "Your word removed";
 export const responseGreeting = "Nice to meet you!";
 export const responseGreetingAgain = "Nice to see you again!";
 export const responseWordAdded = "Your word added";
@@ -53,4 +54,5 @@ export const responseTypeWordToRemove = "Type word to remove";
 export const responseTypeDefinitionToAdd = "Type definition to use";
 export const responseNothingAdded = "Nothing to show";
 export const responseUnknownError = "Sorry, something went wrong";
+export const responseUnknownWord = "I don't know this word";
 export const responseOkNext = "Ok, what's next?";

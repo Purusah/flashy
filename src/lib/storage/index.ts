@@ -5,9 +5,9 @@ export const NoRowsFoundError = new Error("No Rows Found");
 export const StorageNotInitialized = new Error("Storage is not initialized");
 
 export class StorageError extends Error {
-    internalError: DatabaseError;
+    internalError: DatabaseError | null;
 
-    constructor(databaseError: DatabaseError) {
+    constructor(databaseError: DatabaseError | null) {
         super();
         this.internalError = databaseError;
     }
@@ -16,6 +16,13 @@ export class DuplicateError extends StorageError {
     constructor(databaseError: DatabaseError) {
         super(databaseError);
         this.message = "duplicate entity";
+    }
+}
+
+export class NoRowsAffected extends StorageError {
+    constructor() {
+        super(null);
+        this.message = "no rows affected";
     }
 }
 
