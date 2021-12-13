@@ -1,24 +1,21 @@
-Bot to practise your words
+Bot to study words/themes/\<you-name-it\> rapidly
+
+Link to Telegram (TBA soon)
 
 Development:
-1. Full logic
 1. Full development in docker
 1. Abstract all libs
 
 # Bot can:
-1. [Not so much](https://static.wikia.nocookie.net/simpsons/images/e/e9/Nelson_Ha-Ha.jpg/revision/latest?cb=20121205194057)
+1. Save your words
+1. Remove your words
+1. Randomly return to you
 
 # Bot is planing to do:
-1. Add word to bot
 1. List words by pages
 1. Find word by exact match
-1. Train words mode
-    1. Return word round-robin
-    1. Show definition
-    1. Move to next
-    1. Stop
-1. Choose definition
-1. Add custom definitions
-1. Word groups
-1. Random words during trainings
-1. Multiple languages
+1. Edit word's definition
+1. Propose definition from API
+1. Group words by folders
+1. i18n
+1. Multiple definitions for one word (?)
