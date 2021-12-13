@@ -30,8 +30,6 @@ import { DomainStorageStateError, DomainUserNotFoundError, DomainUserStateError 
 import { createLearningPair, getRandomLearningPair, removeLearningPair } from "../../domain/vocabulary";
 import { DuplicateError, isStorageError, NoRowsAffected } from "../../lib/storage";
 
-const logger = getLogger("bot/handlers");
-
 /**
  * @throws {BotServerError}
  */
@@ -176,7 +174,6 @@ export const onMessageText = async (ctx: BotContext, user: User): Promise<void> 
         await ctx.reply(responseWordRemoved);
         return;
     default:
-
         await ctx.reply("Sorry, I don't understand you. Please try again");
     }
 };
