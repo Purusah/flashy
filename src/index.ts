@@ -11,7 +11,6 @@ import {
     onCheckWordOrDefinition,
     onMessageText,
     onRemoveHandler,
-    onShowCorrespondingWord,
     onStart,
 } from "./app/bot/handlers";
 
@@ -133,19 +132,6 @@ bot.hears(Command.CANCEL, async (ctx) => {
 });
 
 /**
- * Return to default keyboard
-*/
-bot.hears(Command.SHOW_CORRESPONDING_WORD, async (ctx) => {
-    const h = await mwErrorCatch(
-        await mwCheckUserState(
-            CommandState["SHOW_CORRESPONDING_WORD"],
-            onShowCorrespondingWord,
-        )
-    );
-    await h(ctx);
-});
-
-/**
  * Get random definition
  * (!) temporary turned off
 */
@@ -177,6 +163,7 @@ bot.hears(Command.CHECK_WORD_DEFINITION, async (ctx) => {
  * Generic handler to receive any type of text message
 */
 bot.on("message:text", async (ctx) => {
+    // TODO limit to 512 characters
     const h = await mwErrorCatch(
         await mwCheckUserState(
             onTextMsgAllowedState,

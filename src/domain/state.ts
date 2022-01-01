@@ -11,7 +11,6 @@ export type State = typeof StateDefault | typeof StateTypeWordToAdd | typeof Sta
     typeof StateTypeDefinitionToAdd | typeof StateStudyMode;
 
 export type StateInfoDefinitionToAdd = { word: string };
-export type StateInfoStudyMode = { ref: string };
 
 export type StateInfo = {
     [StateDefault]: null,
@@ -20,7 +19,7 @@ export type StateInfo = {
     [StateTypeWordToRemove]: null,
     // [StateCheckRandomWord]: StateCheckRandom,
     // [StateCheckRandomDefinition]: StateCheckRandom,
-    [StateStudyMode]: StateInfoStudyMode,
+    [StateStudyMode]: null,
 }
 
 export type StateCheckFunc<T extends State, D> = (state: {
@@ -37,10 +36,5 @@ export const StateDataCheckMap: {[key in State]: (data: any) => data is StateInf
         return false;
     },
     [StateTypeWordToRemove]: (data: any): data is StateInfo[typeof StateTypeWordToRemove] => data === null,
-    [StateStudyMode]: (data: any): data is StateInfo[typeof StateStudyMode] => {
-        if (typeof data?.ref === "string") {
-            return true;
-        }
-        return false;
-    },
+    [StateStudyMode]: (data: any): data is StateInfo[typeof StateDefault] => data === null,
 };

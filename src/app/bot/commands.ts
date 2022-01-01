@@ -13,7 +13,6 @@ export type Commands = "ADD" |
  "CHECK_DEFINITION" |
  "CHECK_WORD_DEFINITION" |
  "CANCEL" |
- "SHOW_CORRESPONDING_WORD" |
  "CHECK_NEXT_WORD";
 
 export const onTextMsgAllowedState: Set<State> = new Set(
@@ -28,7 +27,6 @@ export const Command: {[Property in Commands]: string} = {
     CHECK_WORD: <Commands>"Study words",
     CHECK_WORD_DEFINITION: <Commands>"Study word or definition",
     REMOVE: <Commands>"🟥 Remove word",
-    SHOW_CORRESPONDING_WORD: <Commands>"Corresponding word",
 };
 
 export const CommandState: {[Property in Commands]: Set<State>} = {
@@ -39,7 +37,6 @@ export const CommandState: {[Property in Commands]: Set<State>} = {
     CHECK_WORD: new Set([StateDefault]),
     CHECK_WORD_DEFINITION: new Set([StateDefault]),
     REMOVE: new Set([StateDefault]),
-    SHOW_CORRESPONDING_WORD: new Set([StateStudyMode]),
 };
 
 export const responseCantAddWordTwice = "Can't add word twice";

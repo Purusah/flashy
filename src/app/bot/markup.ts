@@ -7,6 +7,13 @@ export const keyboardOnStart = new Keyboard()
     .text(Command.CHECK_WORD).row();
 
 export const keyboardOnStudy = new Keyboard()
-    .text(Command.SHOW_CORRESPONDING_WORD).row()
     .text(Command.CHECK_NEXT_WORD).row()
     .text(Command.CANCEL).row();
+
+export const makeTextSpoiler = (text: string): string => {
+    return `||${text}||`;
+};
+
+export const makeTextBold = (text: string): string => {
+    return `*${text}*`;
+};

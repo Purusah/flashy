@@ -12,7 +12,7 @@ import {
 } from "./commands";
 import { HandlerWithUser } from "./context";
 import { BotStateInfoMismatch, BotStateMismatch } from "./errors";
-import { keyboardOnStudy, keyboardOnStart } from "./markup";
+import { keyboardOnStudy, keyboardOnStart, makeTextSpoiler, makeTextBold } from "./markup";
 
 import {
     StateDataCheckMap,
@@ -23,7 +23,6 @@ import {
 } from "../../domain/state";
 import { createUser, getUser, resetState, setState, User } from "../../domain/user";
 import { BotContext } from "../../lib/bot";
-import { getLogger } from "../../lib/logger";
 
 import { BotServerError } from "./errors";
 import { DomainStorageStateError, DomainUserNotFoundError, DomainUserStateError } from "../../domain/errors";
@@ -68,9 +67,13 @@ export const onCheckWord = async (ctx: BotContext, user: User): Promise<void> =>
     await setState<typeof StateStudyMode>(
         user.id,
         StateStudyMode,
-        { ref: maybeLearningPair.definition }
+        null
     );
-    await ctx.reply(maybeLearningPair.word, {reply_markup: keyboardOnStudy});
+    const word = `Word: ${makeTextBold(maybeLearningPair.word)}`;
+    await ctx.reply(word, {reply_markup: keyboardOnStudy, parse_mode: "MarkdownV2"});
+
+    const definitions = `Definition: ${makeTextSpoiler(maybeLearningPair.definition)}`;
+    await ctx.reply(definitions, {reply_markup: keyboardOnStudy, parse_mode: "MarkdownV2"});
 };
 
 export const onCheckDefinition = async (ctx: BotContext, user: User): Promise<void> => {
@@ -83,7 +86,7 @@ export const onCheckDefinition = async (ctx: BotContext, user: User): Promise<vo
     await setState<typeof StateStudyMode>(
         user.id,
         StateStudyMode,
-        { ref: maybeLearningPair.word }
+        null
     );
     await ctx.reply(maybeLearningPair.definition);
 };
@@ -91,23 +94,6 @@ export const onCheckDefinition = async (ctx: BotContext, user: User): Promise<vo
 export const onCancel = async (ctx: BotContext, user: User): Promise<void> => {
     await resetState(user.id);
     await ctx.reply(responseOkNext, {reply_markup: keyboardOnStart});
-};
-
-export const onShowCorrespondingWord = async (ctx: BotContext, user: User): Promise<void> => {
-    if (user.state !== StateStudyMode) {
-        throw new BotStateMismatch("unexpected state onShowCorrespondingWord", [], user.state);
-    }
-
-    const checkGuard = StateDataCheckMap[user.state];
-    if (!checkGuard(user.stateInfo)) {
-        throw new BotStateInfoMismatch(
-            "unexpected state info onShowCorrespondingWord",
-            "StateInfoStudyMode",
-            user.stateInfo
-        );
-    }
-
-    await ctx.reply(user.stateInfo.ref, {reply_markup: keyboardOnStudy});
 };
 
 export const onCheckWordOrDefinition = async (ctx: BotContext, user: User): Promise<void> => {
