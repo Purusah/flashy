@@ -13,7 +13,6 @@ export interface IConfig {
         maxRequestBodySize: number;
     },
     storage: IDatabaseStorageConfig
-
 }
 
 export const NewConfig = (): IConfig => {

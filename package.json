@@ -8,7 +8,7 @@
     "build": "tsc",
     "start": "export $(cat .env.local | xargs) &&  tsc && node --inspect --experimental-specifier-resolution=node dist/index.js",
     "start:dev": "export $(cat .env.local | xargs) && nodemon",
-    "start:db": "docker-compose up -- database-local",
+    "start:dev:db": "docker-compose up -- database-local",
     "lint": "eslint . --ext .ts",
     "lint-fix": "eslint . --ext .ts --fix",
     "type": "tsc --noEmit --watch",

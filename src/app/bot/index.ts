@@ -14,24 +14,22 @@ import {
     responseWordRemoved,
     responseWrongCommand,
 } from "../../adapter/external/tg/commands";
-import { keyboardOnStudy, keyboardOnStart, makeTextSpoiler, makeTextBold } from "./markup";
-
+import { BotContext } from "../../adapter/external/tg";
+import { isStorageError } from "../../adapter/internal/storage";
+import { NoRowsAffected } from "../../adapter/internal/storage/DatabaseStorage";
 import {
+    State,
+    StateStudyMode,
     StateTypeDefinitionToAdd,
     StateTypeWordToAdd,
     StateTypeWordToRemove,
-    StateStudyMode,
-    State,
 } from "../../domain/state";
 import { User } from "../../domain/user";
-import { BotContext } from "../../adapter/external/tg";
-
-import { BotServerError, BotStateMismatch, isStateInfoMismatchError, isStateMismatchError } from "./errors";
 import { DomainStorageStateError, DomainUserNotFoundError, DomainUserStateError } from "../../domain/errors";
 import { FlashyApp } from "../../domain";
 import { getLogger } from "../../lib/logger";
-import { isStorageError } from "../../adapter/internal/storage";
-import { NoRowsAffected } from "../../adapter/internal/storage/DatabaseStorage";
+import { keyboardOnStudy, keyboardOnStart, makeTextSpoiler, makeTextBold } from "./markup";
+import { BotServerError, BotStateMismatch, isStateInfoMismatchError, isStateMismatchError } from "./errors";
 
 const logger = getLogger("BotApp");
 
@@ -45,7 +43,7 @@ export type HandlerWithUser = (ctx: BotContext, user: User) => Promise<void>;
 export class BotApp {
     constructor(private readonly flashyApp: FlashyApp) {}
 
-    async onAddHandler(ctx: BotContext): Promise<void> {
+    onAddHandler = async(ctx: BotContext): Promise<void> => {
         const h = await this.mwErrorCatch(
             await this.mwCheckUserState(
                 CommandState["ADD"],
@@ -53,16 +51,17 @@ export class BotApp {
             )
         );
         await h(ctx);
-    }
+    };
 
-    async onRemoveHandler(ctx: BotContext): Promise<void> {
+    onRemoveHandler = async (ctx: BotContext): Promise<void> => {
         const h = await this.mwErrorCatch(
             await this.mwCheckUserState(
                 CommandState["REMOVE"],
                 this._onRemoveHandler,
             )
         );
-        await h(ctx);}
+        await h(ctx);
+    };
 
     async onCheckWord(ctx: BotContext): Promise<void> {
         const h = await this.mwErrorCatch(
@@ -74,7 +73,7 @@ export class BotApp {
         await h(ctx);
     }
 
-    async onCancel(ctx: BotContext): Promise<void> {
+    onCancel = async (ctx: BotContext): Promise<void> => {
         const h = await this.mwErrorCatch(
             await this.mwCheckUserState(
                 CommandState["CANCEL"],
@@ -82,9 +81,9 @@ export class BotApp {
             )
         );
         await h(ctx);
-    }
+    };
 
-    async onCheckDefinition(ctx: BotContext): Promise<void> {
+    onCheckDefinition = async (ctx: BotContext): Promise<void> => {
         const h = await this.mwErrorCatch(
             await this.mwCheckUserState(
                 CommandState["CHECK_DEFINITION"],
@@ -92,9 +91,9 @@ export class BotApp {
             )
         );
         await h(ctx);
-    }
+    };
 
-    async onCheckWordOrDefinition(ctx: BotContext): Promise<void> {
+    onCheckWordOrDefinition = async (ctx: BotContext): Promise<void> => {
         const h = await this.mwErrorCatch(
             await this.mwCheckUserState(
                 CommandState["CHECK_WORD_DEFINITION"],
@@ -102,9 +101,9 @@ export class BotApp {
             )
         );
         await h(ctx);
-    }
+    };
 
-    async onMessageText(ctx: BotContext): Promise<void> {
+    onMessageText = async (ctx: BotContext): Promise<void> => {
         // TODO limit to 512 characters
         const h = await this.mwErrorCatch(
             await this.mwCheckUserState(
@@ -113,13 +112,13 @@ export class BotApp {
             )
         );
         await h(ctx);
-    }
+    };
 
     /**
      * @throws {BotServerError}
      * HandlerWithUser
      */
-    private async _onAddHandler(ctx: BotContext): Promise<void> {
+    private _onAddHandler = async (ctx: BotContext): Promise<void> => {
         try {
             const user = await this.flashyApp.getUser(ctx.from.id);
             if (user === null) {
@@ -140,14 +139,16 @@ export class BotApp {
         }
 
         await ctx.reply(responseTypeWordToAdd);
-    }
+    };
 
-    private async _onRemoveHandler(ctx: BotContext, user: User): Promise<void> {
+    private _onRemoveHandler = async (ctx: BotContext, user: User): Promise<void> => {
         await this.flashyApp.setUserState(user, StateTypeWordToRemove, null);
         await ctx.reply(responseTypeWordToRemove);
-    }
+    };
 
-    private async _onCheckWord(ctx: BotContext, user: User): Promise<void> {
+    private _onCheckWord = async (ctx: BotContext, user: User): Promise<void> => {
+        console.dir("this.flashyApp");
+        console.dir(this);
         const maybeLearningPair = await this.flashyApp.getRandomWordsPair(user);
         if (maybeLearningPair === null) {
             await ctx.reply(responseNothingAdded);
@@ -164,7 +165,7 @@ export class BotApp {
 
         const definitions = `Definition: ${makeTextSpoiler(maybeLearningPair.definition)}`;
         await ctx.reply(definitions, {reply_markup: keyboardOnStudy, parse_mode: "MarkdownV2"});
-    }
+    };
 
     private async _onCheckDefinition(ctx: BotContext, user: User): Promise<void> {
         const maybeLearningPair = await this.flashyApp.getRandomWordsPair(user);
@@ -181,16 +182,16 @@ export class BotApp {
         await ctx.reply(maybeLearningPair.definition);
     }
 
-    private async _onCancel(ctx: BotContext, user: User): Promise<void> {
+    private _onCancel = async (ctx: BotContext, user: User): Promise<void> => {
         await this.flashyApp.resetUserState(user);
         await ctx.reply(responseOkNext, {reply_markup: keyboardOnStart});
-    }
+    };
 
-    private async _onCheckWordOrDefinition(ctx: BotContext, user: User): Promise<void> {
+    private _onCheckWordOrDefinition = async (ctx: BotContext, user: User): Promise<void> => {
         //
-    }
+    };
 
-    async onStart(ctx: BotContext): Promise<void> {
+    onStart = async(ctx: BotContext): Promise<void> => {
         const user = await this.flashyApp.getUser(ctx.from.id);
         if (user === null) {
             await this.flashyApp.createUser(ctx.from.id);
@@ -200,12 +201,12 @@ export class BotApp {
 
         await this.flashyApp.resetUserState(user);
         await ctx.reply(responseGreetingAgain, {reply_markup: keyboardOnStart});
-    }
+    };
 
     /**
      * @throws {DomainStorageStateError} on user state don't match state info
      */
-    private async _onMessageText(ctx: BotContext, user: User): Promise<void> {
+    private _onMessageText = async (ctx: BotContext, user: User): Promise<void> => {
 
         const message = ctx.message?.text;
         if (message === undefined) {
@@ -229,13 +230,13 @@ export class BotApp {
         default:
             await ctx.reply("Sorry, I don't understand you. Please try again");
         }
-    }
+    };
 
     static init(flashyApp: FlashyApp): BotApp {
         return new BotApp(flashyApp);
     }
 
-    private async mwErrorCatch(handler: Handler): Promise<Handler> {
+    private mwErrorCatch = async (handler: Handler): Promise<Handler> => {
         return async (ctx: BotContext) => {
             try {
                 await handler(ctx);
@@ -265,8 +266,9 @@ export class BotApp {
                 await ctx.reply(responseUnknownError, {reply_markup: keyboardOnStart});
             }
         };
-    }
-    private async mwCheckUserState(allowedStates: Set<State>, handler: HandlerWithUser): Promise<Handler> {
+    };
+
+    private mwCheckUserState = async (allowedStates: Set<State>, handler: HandlerWithUser): Promise<Handler> => {
         return async (ctx: BotContext) => {
             const user = await this.flashyApp.getUser(ctx.from.id);
             if (!user) {
@@ -278,5 +280,5 @@ export class BotApp {
 
             await handler(ctx, user);
         };
-    }
+    };
 }
