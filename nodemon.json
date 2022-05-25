@@ -1,6 +1,15 @@
 {
-    "watch": ["src"],
+    "watch": [
+        "src"
+    ],
     "ext": ".ts,.js",
-    "ignore": ["dist", "build", "migrations", "node_modules", "./.*", "*.md"],
-    "exec": "npm run build && node --inspect ./dist/index.js"
+    "ignore": [
+        "dist",
+        "build",
+        "migrations",
+        "node_modules",
+        "./.*",
+        "*.md"
+    ],
+    "exec": "npm run build && node --inspect --experimental-specifier-resolution=node ./dist/index.js"
 }

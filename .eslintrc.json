@@ -24,9 +24,16 @@
             "error",
             "always"
         ],
+        "function-paren-newline": [
+            "error",
+            "multiline-arguments"
+        ],
         "indent": [
             "error",
-            4
+            4,
+            {
+                "SwitchCase": 0
+            }
         ],
         "linebreak-style": [
             "error",
@@ -38,8 +45,26 @@
                 "code": 120
             }
         ],
+        "no-multiple-empty-lines": [
+            "error",
+            {
+                "max": 1,
+                "maxBOF": 0,
+                "maxEOF": 0
+            }
+        ],
         "no-multi-spaces": "error",
-        "no-trailing-spaces": "error",
+        "semi-spacing": [
+            "error",
+            {
+                "before": false,
+                "after": true
+            }
+        ],
+        "space-in-parens": [
+            "error",
+            "never"
+        ],
         "quotes": [
             "error",
             "double"

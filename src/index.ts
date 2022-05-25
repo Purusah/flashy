@@ -1,252 +1,112 @@
 import http from "node:http";
 import { webhookCallback } from "grammy";
 
-import { Command, CommandState, onTextMsgAllowedState } from "./app/bot/commands";
-import { mwCheckUserState, mwErrorCatch } from "./app/bot/context";
-import {
-    onAddHandler,
-    onCancel,
-    onCheckDefinition,
-    onCheckWord,
-    onCheckWordOrDefinition,
-    onMessageText,
-    onRemoveHandler,
-    onStart,
-} from "./app/bot/handlers";
-
-import { Bot, BotContext } from "./lib/bot";
+import { Bot, BotContext } from "./adapter/external/tg";
+import { Command } from "./adapter/external/tg/commands";
+import { DatabaseDictionaryStorage, DatabaseUserStorage } from "./adapter/internal/storage/DatabaseStorage";
+import { BotApp } from "./app/bot";
+import { NewConfig } from "./app/config";
+import { FlashyApp } from "./domain";
 import { getLogger } from "./lib/logger";
-import { initStorage, getStorage } from "./lib/storage";
-
-
-const isProduction = process.env.NODE_ENV === "production";
-const BOT_URL = process.env.DOMAIN;
-const BOT_PORT = Number.parseInt(process.env.PORT || "");
-const BOT_TOKEN = process.env.BOT_TOKEN;
-const BOT_PATH = `/${process.env.BOT_PATH || ""}`;
-const BOT_MAX_REQUEST_BODY_SIZE = 1_000_000; // 1MB
-const BOT_STORAGE_URL = process.env.DATABASE_URL;
-const BOT_IS_DEBUG = process.env.BOT_IS_DEBUG;
+import { IClosable } from "./lib/types";
 
 const logger = getLogger("index");
 
-if (BOT_TOKEN === undefined) {
-    logger.error("BOT_TOKEN not set");
-    process.exit(1);
-}
+const run = async () => {
 
-if (BOT_STORAGE_URL === undefined) {
-    logger.error("DATABASE_URL not set");
-    process.exit(1);
-}
+    const config = NewConfig();
 
-const bot = new Bot(
-    BOT_TOKEN,
-    {
-        client: {
-            baseFetchConfig: {
-                compress: true,
-                // agent: new Agent({ keepAlive: true }),
-            },
-        },
-    },
-);
+    const bot = await Bot.init({token: config.bot.token});
 
-initStorage({
-    connectionString: BOT_STORAGE_URL,
-    ssl: (BOT_IS_DEBUG === "1") ? undefined : {rejectUnauthorized: false}
-});
+    // storage
+    const dictionaryStorage = DatabaseDictionaryStorage.init(config.storage);
+    const userStorage = DatabaseUserStorage.init(config.storage);
 
-/**
- * Command to start using bot. Add user to database.
-*/
-bot.command("start", async (ctx: BotContext) => {
-    await onStart(ctx);
-});
+    //
+    const flashyApp = FlashyApp.init(dictionaryStorage, userStorage);
 
-/**
- * Start branch to add new word
-*/
-bot.hears(Command.ADD, async (ctx) => {
-    const h = await mwErrorCatch(
-        await mwCheckUserState(
-            CommandState["ADD"],
-            onAddHandler,
-        )
-    );
-    await h(ctx);
-});
+    const botApp = BotApp.init(flashyApp);
 
+    bot.command("start", async (ctx: BotContext) => {
+        await botApp.onStart(ctx);
+    });
+    bot.hears(Command.ADD, async (ctx) => botApp.onAddHandler(ctx));
+    bot.hears(Command.REMOVE, async (ctx) => botApp.onRemoveHandler(ctx));
+    bot.hears(Command.CHECK_WORD, async (ctx) => botApp.onCheckWord(ctx));
+    bot.hears(Command.CHECK_NEXT_WORD, async (ctx) => botApp.onCheckWord(ctx));
+    bot.hears(Command.CANCEL, async (ctx) => botApp.onCancel(ctx));
+    bot.hears(Command.CHECK_DEFINITION, async (ctx) => botApp.onCheckDefinition(ctx));
+    bot.hears(Command.CHECK_WORD_DEFINITION, async (ctx) => botApp.onCheckWordOrDefinition(ctx));
+    bot.on("message:text", async (ctx) => botApp.onMessageText(ctx));
 
-/**
- * Start branch to remove word
-*/
-bot.hears(Command.REMOVE, async (ctx) => {
-    const h = await mwErrorCatch(
-        await mwCheckUserState(
-            CommandState["REMOVE"],
-            onRemoveHandler,
-        )
-    );
-    await h(ctx);
-});
+    const toCloseOnExit: IClosable[] = [bot, dictionaryStorage, userStorage];
 
-/**
- * Get random word
-*/
-bot.hears(Command.CHECK_WORD, async (ctx) => {
-    const h = await mwErrorCatch(
-        await mwCheckUserState(
-            CommandState["CHECK_WORD"],
-            onCheckWord,
-        )
-    );
-    await h(ctx);
-});
+    /**
+     * Graceful shutdown
+    */
+    process.once("SIGINT", async () => {
+        await app.close();
+        for (const i of toCloseOnExit) {
+            await i.close();
+        }
+    });
+    process.once("SIGTERM", async () => {
+        await app.close();
+        for (const i of toCloseOnExit) {
+            await i.close();
+        }
+    });
 
-/**
- * Get next random word
-*/
-bot.hears(Command.CHECK_NEXT_WORD, async (ctx) => {
-    const h = await mwErrorCatch(
-        await mwCheckUserState(
-            CommandState["CHECK_NEXT_WORD"],
-            onCheckWord,
-        )
-    );
-    await h(ctx);
-});
+    const app = http.createServer(async (req, res) => {
+        if (req.url !== config.bot.path) {
+            logger.warning(`bad request ${req.method} ${req.url}`);
+            res.statusCode = 404;
+            res.end();
 
+        }
+        let buffersByteLength = 0;
+        const buffers: Uint8Array[] = [];
 
-/**
- * Return to default keyboard
-*/
-bot.hears(Command.CANCEL, async (ctx) => {
-    const h = await mwErrorCatch(
-        await mwCheckUserState(
-            CommandState["CANCEL"],
-            onCancel,
-        )
-    );
-    await h(ctx);
-});
+        for await (const chunk of req) {
+            buffers.push(chunk);
 
-/**
- * Get random definition
- * (!) temporary turned off
-*/
-bot.hears(Command.CHECK_DEFINITION, async (ctx) => {
-    const h = await mwErrorCatch(
-        await mwCheckUserState(
-            CommandState["CHECK_DEFINITION"],
-            onCheckDefinition,
-        )
-    );
-    await h(ctx);
-});
+            buffersByteLength += (<Uint8Array>chunk).byteLength;
+            if (buffersByteLength > config.bot.maxRequestBodySize) {
+                logger.warning(`request length exceed limit ${config.bot.maxRequestBodySize} MB`);
+                res.statusCode = 403;
+                res.end();
+                return;
+            }
+        }
 
-/**
- * Get random definition
- * (!) temporary turned off
-*/
-bot.hears(Command.CHECK_WORD_DEFINITION, async (ctx) => {
-    const h = await mwErrorCatch(
-        await mwCheckUserState(
-            CommandState["CHECK_WORD_DEFINITION"],
-            onCheckWordOrDefinition,
-        )
-    );
-    await h(ctx);
-});
-
-/**
- * Generic handler to receive any type of text message
-*/
-bot.on("message:text", async (ctx) => {
-    // TODO limit to 512 characters
-    const h = await mwErrorCatch(
-        await mwCheckUserState(
-            onTextMsgAllowedState,
-            onMessageText,
-        )
-    );
-    await h(ctx);
-
-});
-
-/**
- * Graceful shutdown
-*/
-process.once("SIGINT", async () => {
-    await app.close();
-    await getStorage().end();
-    await bot.stop();
-});
-process.once("SIGTERM", async () => {
-    await app.close();
-    await getStorage().end();
-    await bot.stop();
-});
-
-const app = http.createServer(async (req, res) => {
-    if (req.url !== BOT_PATH) {
-        logger.warning(`bad request ${req.method} ${req.url}`);
-        res.statusCode = 404;
-        res.end();
-
-    }
-    let buffersByteLength = 0;
-    const buffers: Uint8Array[] = [];
-
-    for await (const chunk of req) {
-        buffers.push(chunk);
-
-        buffersByteLength += (<Uint8Array>chunk).byteLength;
-        if (buffersByteLength > BOT_MAX_REQUEST_BODY_SIZE) {
-            logger.warning(`request length exceed limit ${BOT_MAX_REQUEST_BODY_SIZE} MB`);
+        if (buffersByteLength === 0) {
+            logger.warning("request 0 length");
             res.statusCode = 403;
             res.end();
             return;
         }
-    }
 
-    if (buffersByteLength === 0) {
-        logger.warning("request 0 length");
-        res.statusCode = 403;
-        res.end();
-        return;
-    }
+        const data = Buffer.concat(buffers).toString();
 
-    const data = Buffer.concat(buffers).toString();
-
-    Object.defineProperties(req, {
-        body: JSON.parse(data),
+        Object.defineProperties(req, {
+            body: JSON.parse(data),
+        });
+        const handler = webhookCallback(bot, "http");
+        await handler(req, res);
     });
-    const handler = webhookCallback(bot, "http");
-    await handler(req, res);
-});
 
-if (isProduction) {
-    if (BOT_URL === undefined || Number.isNaN(BOT_PORT)) {
-        throw new Error(`Bad server params host: ${BOT_URL} port: ${BOT_PORT}`);
+    if (config.env.isProduction) {
+        if (config.bot.url || Number.isNaN(config.bot.port)) {
+            throw new Error(`Bad server params host: ${config.bot.url} port: ${config.bot.url}`);
+        }
+
+        app.listen(config.bot.port);
+        logger.info("bot started on web hooks");
+        bot.api.setWebhook(`${config.bot.url}${config.bot.path}`);
+    } else {
+        logger.info("bot started on long pooling");
+        bot.start();
     }
+};
 
-    app.listen(BOT_PORT);
-    logger.info("bot started on web hooks");
-    bot.api.setWebhook(`${BOT_URL}${BOT_PATH}`);
-} else {
-    logger.info("bot started on long pooling");
-    bot.start();
-}
-
-bot.api.setMyCommands([
-    { command: "start", description: "(Re)start the bot" },
-    { command: "help", description: "Show help text" },
-    // { command: "settings", description: "Open settings" },
-])
-    .then(() => {
-        //
-    })
-    .catch((e) => {
-        logger.error(`set command on start ${e}`);
-    });
+run().then();

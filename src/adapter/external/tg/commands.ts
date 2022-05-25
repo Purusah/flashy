@@ -5,21 +5,21 @@ import {
     StateTypeDefinitionToAdd,
     StateTypeWordToAdd,
     StateTypeWordToRemove,
-} from "../../domain/state";
+} from "../../../domain/state";
 
 export type Commands = "ADD" |
- "REMOVE" |
- "CHECK_WORD" |
- "CHECK_DEFINITION" |
- "CHECK_WORD_DEFINITION" |
- "CANCEL" |
- "CHECK_NEXT_WORD";
+    "REMOVE" |
+    "CHECK_WORD" |
+    "CHECK_DEFINITION" |
+    "CHECK_WORD_DEFINITION" |
+    "CANCEL" |
+    "CHECK_NEXT_WORD";
 
 export const onTextMsgAllowedState: Set<State> = new Set(
     [StateTypeWordToAdd, StateTypeDefinitionToAdd, StateTypeWordToRemove],
 );
 
-export const Command: {[Property in Commands]: string} = {
+export const Command: { [Property in Commands]: string } = {
     ADD: <Commands>"🟢 Add word",
     CANCEL: <Commands>"Cancel",
     CHECK_DEFINITION: <Commands>"Study definition",
@@ -29,7 +29,7 @@ export const Command: {[Property in Commands]: string} = {
     REMOVE: <Commands>"🟥 Remove word",
 };
 
-export const CommandState: {[Property in Commands]: Set<State>} = {
+export const CommandState: { [Property in Commands]: Set<State> } = {
     ADD: new Set([StateDefault]),
     CANCEL: new Set([StateDefault, StateStudyMode]),
     CHECK_DEFINITION: new Set([StateDefault]),

@@ -1,6 +1,6 @@
 import { Keyboard } from "grammy/out/convenience/keyboard";
 
-import { Command } from "./commands";
+import { Command } from "../../adapter/external/tg/commands";
 
 export const keyboardOnStart = new Keyboard()
     .text(Command.ADD).text(Command.REMOVE).row()
