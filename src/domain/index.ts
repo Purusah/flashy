@@ -11,6 +11,9 @@ import {
 } from "./state";
 import { IUserRepository, User } from "./user";
 import { isStorageError, DuplicateError } from "../adapter/internal/storage";
+import { getLogger } from "../lib/logger";
+
+const logger = getLogger("FlashyApp");
 
 export class FlashyApp {
     private constructor(
@@ -24,6 +27,7 @@ export class FlashyApp {
     }
 
     async getUser(id: number): Promise<User | null> {
+        logger.info("getUser start");
         return this.userStorage.getUser(id);
     }
 
@@ -50,6 +54,7 @@ export class FlashyApp {
     }
 
     async actOnUserState(userId: number, message: string): Promise<void> {
+        // TODO move to the BotApp
         let user = await this.userStorage.getUser(userId);
         if (user === null) {
             user = await this.userStorage.createUser(userId);

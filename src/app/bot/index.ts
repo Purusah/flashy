@@ -44,6 +44,7 @@ export class BotApp {
     constructor(private readonly flashyApp: FlashyApp) {}
 
     onAddHandler = async(ctx: BotContext): Promise<void> => {
+        logger.info("onAddHandler");
         const h = await this.mwErrorCatch(
             await this.mwCheckUserState(
                 CommandState["ADD"],
@@ -118,13 +119,8 @@ export class BotApp {
      * @throws {BotServerError}
      * HandlerWithUser
      */
-    private _onAddHandler = async (ctx: BotContext): Promise<void> => {
+    private _onAddHandler = async (ctx: BotContext, user: User): Promise<void> => {
         try {
-            const user = await this.flashyApp.getUser(ctx.from.id);
-            if (user === null) {
-                throw new BotServerError("Storage error");
-            }
-
             await this.flashyApp.setUserState(user, StateTypeWordToAdd, null);
         } catch (e) {
             if (e instanceof DomainStorageStateError) {
@@ -147,8 +143,6 @@ export class BotApp {
     };
 
     private _onCheckWord = async (ctx: BotContext, user: User): Promise<void> => {
-        console.dir("this.flashyApp");
-        console.dir(this);
         const maybeLearningPair = await this.flashyApp.getRandomWordsPair(user);
         if (maybeLearningPair === null) {
             await ctx.reply(responseNothingAdded);
@@ -187,7 +181,7 @@ export class BotApp {
         await ctx.reply(responseOkNext, {reply_markup: keyboardOnStart});
     };
 
-    private _onCheckWordOrDefinition = async (ctx: BotContext, user: User): Promise<void> => {
+    private _onCheckWordOrDefinition = async (_ctx: BotContext, _user: User): Promise<void> => {
         //
     };
 
@@ -270,6 +264,7 @@ export class BotApp {
 
     private mwCheckUserState = async (allowedStates: Set<State>, handler: HandlerWithUser): Promise<Handler> => {
         return async (ctx: BotContext) => {
+            logger.info("mwCheckUserState start");
             const user = await this.flashyApp.getUser(ctx.from.id);
             if (!user) {
                 throw new Error("TODO");

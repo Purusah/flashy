@@ -32,10 +32,10 @@ export const Command: { [Property in Commands]: string } = {
 export const CommandState: { [Property in Commands]: Set<State> } = {
     ADD: new Set([StateDefault]),
     CANCEL: new Set([StateDefault, StateStudyMode]),
-    CHECK_DEFINITION: new Set([StateDefault]),
-    CHECK_NEXT_WORD: new Set([StateStudyMode]),
-    CHECK_WORD: new Set([StateDefault]),
-    CHECK_WORD_DEFINITION: new Set([StateDefault]),
+    CHECK_DEFINITION: new Set([StateDefault, StateStudyMode]),
+    CHECK_NEXT_WORD: new Set([StateDefault, StateStudyMode]),
+    CHECK_WORD: new Set([StateDefault, StateStudyMode]),
+    CHECK_WORD_DEFINITION: new Set([StateDefault, StateStudyMode]),
     REMOVE: new Set([StateDefault]),
 };
 
