@@ -11,7 +11,7 @@ export class HttpServer {
     ) {}
 
     listen() {
-        this.server.listen(this.config.port);
+        this.server = this.server.listen(this.config.port);
     }
 
     async close(): Promise<void> {
@@ -25,6 +25,7 @@ export class HttpServer {
     static new(config: IHttpServerConfig, endpoints: {[key in string]: Endpoint}) {
         const server = http.createServer(async (req, res) => {
             const handler = req.url !== undefined ? endpoints[req.url] ?? null : null;
+            logger.info(`handler: ${handler}`);
             if (handler === null) {
                 logger.warning(`bad request ${req.method} ${req.url}`);
                 res.statusCode = 404;
@@ -56,6 +57,7 @@ export class HttpServer {
             Object.defineProperties(req, {
                 body: JSON.parse(Buffer.concat(buffers).toString()),
             });
+            logger.info("run handler");
             await handler(req, res);
         });
 

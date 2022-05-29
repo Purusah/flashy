@@ -22,13 +22,13 @@ const run = async (): Promise<IClosable[]> => {
     const dictionaryStorage = DatabaseDictionaryStorage.init(config.storage);
     const userStorage = DatabaseUserStorage.init(config.storage);
 
-    // init external adapters
-    const bot = await Bot.init({token: config.bot.token});
-    const server = HttpServer.new(serverConfig, {[config.bot.path]: await webhookCallback(bot, "http")});
-
     // init services
     const flashyApp = FlashyApp.init(dictionaryStorage, userStorage);
     const botApp = BotApp.init(flashyApp); // TODO
+
+    // init external adapters
+    const bot = await Bot.init({token: config.bot.token});
+    const server = HttpServer.new(serverConfig, {[config.bot.path]: await webhookCallback(bot, "http")});
 
     bot.command("start", async (ctx: BotContext) => botApp.onStart(ctx));
     bot.hears(Command.ADD, async (ctx) => botApp.onAddHandler(ctx));
@@ -42,7 +42,7 @@ const run = async (): Promise<IClosable[]> => {
 
     if (config.env.isProduction) {
         server.listen();
-        bot.api.setWebhook(`${config.bot.url}${config.bot.path}`);
+        await bot.api.setWebhook(`${config.bot.url}${config.bot.path}`);
         logger.info("bot started on web hooks");
     } else {
         bot.start();
