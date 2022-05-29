@@ -24,7 +24,7 @@ const run = async (): Promise<IClosable[]> => {
 
     // init external adapters
     const bot = await Bot.init({token: config.bot.token});
-    const server = HttpServer.new(serverConfig, {[config.bot.path]: webhookCallback(bot, "http")});
+    const server = HttpServer.new(serverConfig, {[config.bot.path]: await webhookCallback(bot, "http")});
 
     // init services
     const flashyApp = FlashyApp.init(dictionaryStorage, userStorage);
