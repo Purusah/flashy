@@ -9,7 +9,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy: fail-fast
+    strategy:
+      fail-fast: true
     env:
       NODE_ENV: development
 
@@ -34,7 +35,8 @@ jobs:
     needs: ["build"]
     runs-on: ubuntu-latest
     environment: heroku-general
-    strategy: fail-fast
+    strategy:
+      fail-fast: true
     steps:
       - uses: actions/checkout@v2
         with:
