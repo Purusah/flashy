@@ -64,7 +64,7 @@ export class BotApp {
         await h(ctx);
     };
 
-    async onCheckWord(ctx: BotContext): Promise<void> {
+    onCheckWord = async (ctx: BotContext): Promise<void> => {
         const h = await this.mwErrorCatch(
             await this.mwCheckUserState(
                 CommandState["CHECK_WORD"],
@@ -72,7 +72,7 @@ export class BotApp {
             )
         );
         await h(ctx);
-    }
+    };
 
     onCancel = async (ctx: BotContext): Promise<void> => {
         const h = await this.mwErrorCatch(
