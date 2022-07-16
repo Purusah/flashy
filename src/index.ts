@@ -37,15 +37,14 @@ const run = async (config: IConfig): Promise<IClosable[]> => {
     bot.hears(Command.CHECK_WORD_DEFINITION, async (ctx) => botApp.onCheckWordOrDefinition(ctx));
     bot.on("message:text", async (ctx) => botApp.onMessageText(ctx));
 
-    bot.start();
-    logger.info("bot started on long pooling");
-    // if (config.env.isProduction) {
-    //     server.listen();
-    //     await bot.api.setWebhook(`${config.bot.url}${config.bot.path}`);
-    //     logger.info("bot started on web hooks");
-    // } else {
-
-    // }
+    if (config.env.isProduction) {
+        server.listen();
+        await bot.api.setWebhook(`${config.bot.url}${config.bot.path}`);
+        logger.info("bot started on web hooks");
+    } else {
+        await bot.start();
+        logger.info("bot started on long pooling");
+    }
 
     return [server, bot, dictionaryStorage, userStorage];
 };

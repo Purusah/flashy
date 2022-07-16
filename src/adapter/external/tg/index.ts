@@ -32,6 +32,10 @@ export class Bot<C extends BotContext = BotContext> extends Grammy<C> implements
     }
 
     async close(): Promise<void> {
+        const webhookInfo = await this.api.getWebhookInfo();
+        if (webhookInfo.url !== undefined) {
+            await this.api.deleteWebhook();
+        }
         return this.stop();
     }
 
