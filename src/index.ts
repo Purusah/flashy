@@ -25,7 +25,7 @@ const run = async (config: IConfig): Promise<IClosable[]> => {
 
     // init external adapters
     const bot = await Bot.init({token: config.bot.token});
-    const server = HttpServer.new(serverConfig, {[config.bot.path]: await webhookCallback(bot, "http")});
+    const server = HttpServer.new(serverConfig, {[config.bot.path]: webhookCallback(bot, "http")});
 
     bot.command("start", async (ctx: BotContext) => botApp.onStart(ctx));
     bot.hears(Command.ADD, async (ctx) => botApp.onAddHandler(ctx));
