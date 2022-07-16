@@ -10,7 +10,7 @@ import { getLogger } from "./lib/logger";
 import { IClosable } from "./lib/types";
 import { HttpServer } from "./adapter/external/http";
 
-const logger = getLogger("index");
+const logger = getLogger();
 
 const run = async (config: IConfig): Promise<IClosable[]> => {
     const serverConfig = {maxRequestBodySizeBytes: config.bot.maxRequestBodySize, port: config.bot.port};

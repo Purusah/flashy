@@ -6,7 +6,7 @@ const format = winston.format.combine(
     winston.format.errors({ stack: true}),
 );
 
-export function getLogger(name: string) {
+export function getLogger(name: string = import.meta.url) {
     return winston.createLogger({
         level: "info",
         format,
