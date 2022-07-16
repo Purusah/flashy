@@ -4,7 +4,7 @@ import { Bot, BotContext } from "./adapter/external/tg";
 import { Command } from "./adapter/external/tg/commands";
 import { DatabaseDictionaryStorage, DatabaseUserStorage } from "./adapter/internal/storage/DatabaseStorage";
 import { BotApp } from "./app/bot";
-import { NewConfig } from "./app/config";
+import { IConfig, NewConfig } from "./app/config";
 import { FlashyApp } from "./domain";
 import { getLogger } from "./lib/logger";
 import { IClosable } from "./lib/types";
@@ -12,10 +12,7 @@ import { HttpServer } from "./adapter/external/http";
 
 const logger = getLogger("index");
 
-const run = async (): Promise<IClosable[]> => {
-
-    // read config
-    const config = NewConfig();
+const run = async (config: IConfig): Promise<IClosable[]> => {
     const serverConfig = {maxRequestBodySizeBytes: config.bot.maxRequestBodySize, port: config.bot.port};
 
     // init internal adapters: storage
@@ -54,15 +51,16 @@ const run = async (): Promise<IClosable[]> => {
 };
 
 (async () => {
-    const toCloseOnExit = await run();
+    const config = NewConfig();
+    const closeOnExit = await run(config);
 
     process.once("SIGINT", async () => {
-        for (const i of toCloseOnExit) {
+        for (const i of closeOnExit) {
             await i.close();
         }
     });
     process.once("SIGTERM", async () => {
-        for (const i of toCloseOnExit) {
+        for (const i of closeOnExit) {
             await i.close();
         }
     });
