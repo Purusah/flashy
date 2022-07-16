@@ -18,13 +18,13 @@
   "license": "MIT",
   "devDependencies": {
     "@types/node": "16.11.6",
-    "@types/pg": "8.6.1",
+    "@types/pg": "^8.6.5",
     "@typescript-eslint/eslint-plugin": "5.2.0",
     "@typescript-eslint/parser": "5.2.0",
     "eslint": "8.1.0",
     "eslint-config-google": "0.14.0",
-    "nodemon": "2.0.14",
-    "typescript": "4.6.4"
+    "nodemon": "2.0.19",
+    "typescript": "^4.7.4"
   },
   "engines": {
     "node": "16.x"
