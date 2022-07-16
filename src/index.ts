@@ -1,5 +1,6 @@
 import { webhookCallback } from "grammy";
 
+import { HttpServer } from "./adapter/external/http";
 import { Bot, BotContext } from "./adapter/external/tg";
 import { Command } from "./adapter/external/tg/commands";
 import { DatabaseDictionaryStorage, DatabaseUserStorage } from "./adapter/internal/storage/DatabaseStorage";
@@ -8,7 +9,6 @@ import { IConfig, NewConfig } from "./app/config";
 import { FlashyApp } from "./domain";
 import { getLogger } from "./lib/logger";
 import { IClosable } from "./lib/types";
-import { HttpServer } from "./adapter/external/http";
 
 const logger = getLogger();
 
@@ -21,7 +21,7 @@ const run = async (config: IConfig): Promise<IClosable[]> => {
 
     // init services
     const flashyApp = FlashyApp.init(dictionaryStorage, userStorage);
-    const botApp = BotApp.init(flashyApp); // TODO
+    const botApp = BotApp.init(flashyApp);
 
     // init external adapters
     const bot = await Bot.init({token: config.bot.token});
