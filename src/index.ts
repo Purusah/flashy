@@ -6,7 +6,7 @@ import { Command } from "./adapter/external/tg/commands";
 import { DatabaseDictionaryStorage, DatabaseUserStorage } from "./adapter/internal/storage/DatabaseStorage";
 import { BotApp } from "./app/bot";
 import { IConfig, NewConfig } from "./app/config";
-import { FlashyApp } from "./domain";
+import { FlashyDictionaryService, FlashyUserService } from "./domain";
 import { getLogger } from "./lib/logger";
 import { IClosable } from "./lib/types";
 
@@ -20,8 +20,11 @@ const run = async (config: IConfig): Promise<IClosable[]> => {
     const userStorage = DatabaseUserStorage.init(config.storage);
 
     // init services
-    const flashyApp = FlashyApp.init(dictionaryStorage, userStorage);
-    const botApp = BotApp.init(flashyApp);
+    const dictionaryService = FlashyDictionaryService.init(dictionaryStorage);
+    const userService = FlashyUserService.init(userStorage);
+
+    // init controllers
+    const botApp = BotApp.init(dictionaryService, userService);
 
     // init external adapters
     const bot = await Bot.init({token: config.bot.token});
@@ -35,7 +38,9 @@ const run = async (config: IConfig): Promise<IClosable[]> => {
     bot.hears(Command.CANCEL, async (ctx) => botApp.onCancel(ctx));
     bot.hears(Command.CHECK_DEFINITION, async (ctx) => botApp.onCheckDefinition(ctx));
     bot.hears(Command.CHECK_WORD_DEFINITION, async (ctx) => botApp.onCheckWordOrDefinition(ctx));
+    bot.hears(Command.LIST_WORDS, async (ctx) => botApp.onListWords(ctx));
     bot.on("message:text", async (ctx) => botApp.onMessageText(ctx));
+    bot.on("callback_query:data", (ctx) => botApp.onCallbackQueryData(ctx));
 
     if (config.env.isProduction) {
         server.listen();

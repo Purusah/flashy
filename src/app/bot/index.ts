@@ -15,20 +15,28 @@ import {
     responseWrongCommand,
 } from "../../adapter/external/tg/commands";
 import { BotContext } from "../../adapter/external/tg";
-import { isStorageError } from "../../adapter/internal/storage";
+import { DuplicateError, isStorageError } from "../../adapter/internal/storage";
 import { NoRowsAffected } from "../../adapter/internal/storage/DatabaseStorage";
 import {
     State,
+    StateDataCheckMap,
     StateStudyMode,
     StateTypeDefinitionToAdd,
     StateTypeWordToAdd,
     StateTypeWordToRemove,
 } from "../../domain/state";
-import { User } from "../../domain/user";
+import { User, } from "../../domain/user";
 import { DomainStorageStateError, DomainUserNotFoundError, DomainUserStateError } from "../../domain/errors";
-import { FlashyApp } from "../../domain";
+import { FlashyDictionaryService, FlashyUserService } from "../../domain";
 import { getLogger } from "../../lib/logger";
-import { keyboardOnStudy, keyboardOnStart, makeTextSpoiler, makeTextBold } from "./markup";
+import {
+    keyboardNoMoreWordsBuilder,
+    keyboardOnStart,
+    keyboardOnStudy,
+    keyboardOnListWordsBuilder,
+    makeTextBold,
+    makeTextSpoiler,
+} from "./markup";
 import { BotServerError, BotStateMismatch, isStateInfoMismatchError, isStateMismatchError } from "./errors";
 
 const logger = getLogger("BotApp");
@@ -41,10 +49,12 @@ export type Handler = (ctx: BotContext) => Promise<void>;
 export type HandlerWithUser = (ctx: BotContext, user: User) => Promise<void>;
 
 export class BotApp {
-    constructor(private readonly flashyApp: FlashyApp) {}
+    constructor(
+        private readonly dictionaryService: FlashyDictionaryService,
+        private readonly userService: FlashyUserService
+    ) {}
 
     onAddHandler = async(ctx: BotContext): Promise<void> => {
-        logger.info("onAddHandler");
         const h = await this.mwErrorCatch(
             await this.mwCheckUserState(
                 CommandState["ADD"],
@@ -54,21 +64,11 @@ export class BotApp {
         await h(ctx);
     };
 
-    onRemoveHandler = async (ctx: BotContext): Promise<void> => {
+    onCallbackQueryData = async (ctx: BotContext): Promise<void> => {
         const h = await this.mwErrorCatch(
             await this.mwCheckUserState(
-                CommandState["REMOVE"],
-                this._onRemoveHandler,
-            )
-        );
-        await h(ctx);
-    };
-
-    onCheckWord = async (ctx: BotContext): Promise<void> => {
-        const h = await this.mwErrorCatch(
-            await this.mwCheckUserState(
-                CommandState["CHECK_WORD"],
-                this._onCheckWord,
+                null,
+                this._onCallbackQueryData,
             )
         );
         await h(ctx);
@@ -79,6 +79,16 @@ export class BotApp {
             await this.mwCheckUserState(
                 CommandState["CANCEL"],
                 this._onCancel,
+            )
+        );
+        await h(ctx);
+    };
+
+    onCheckWord = async (ctx: BotContext): Promise<void> => {
+        const h = await this.mwErrorCatch(
+            await this.mwCheckUserState(
+                CommandState["CHECK_WORD"],
+                this._onCheckWord,
             )
         );
         await h(ctx);
@@ -115,13 +125,45 @@ export class BotApp {
         await h(ctx);
     };
 
+    onListWords = async (ctx: BotContext): Promise<void> => {
+        const h = await this.mwErrorCatch(
+            await this.mwCheckUserState(
+                CommandState["LIST_WORDS"],
+                this._onListWords,
+            )
+        );
+        await h(ctx);
+    };
+
+    onRemoveHandler = async (ctx: BotContext): Promise<void> => {
+        const h = await this.mwErrorCatch(
+            await this.mwCheckUserState(
+                CommandState["REMOVE"],
+                this._onRemoveHandler,
+            )
+        );
+        await h(ctx);
+    };
+
+    onStart = async(ctx: BotContext): Promise<void> => {
+        const user = await this.userService.get(ctx.from.id);
+        if (user === null) {
+            await this.userService.create(ctx.from.id);
+            await ctx.reply(responseGreeting, {reply_markup: keyboardOnStart});
+            return;
+        }
+
+        await this.userService.resetState(user);
+        await ctx.reply(responseGreetingAgain, {reply_markup: keyboardOnStart});
+    };
+
     /**
      * @throws {BotServerError}
      * HandlerWithUser
      */
     private _onAddHandler = async (ctx: BotContext, user: User): Promise<void> => {
         try {
-            await this.flashyApp.setUserState(user, StateTypeWordToAdd, null);
+            await this.userService.setState(user, StateTypeWordToAdd, null);
         } catch (e) {
             if (e instanceof DomainStorageStateError) {
                 throw new BotServerError("Storage error");
@@ -137,19 +179,45 @@ export class BotApp {
         await ctx.reply(responseTypeWordToAdd);
     };
 
-    private _onRemoveHandler = async (ctx: BotContext, user: User): Promise<void> => {
-        await this.flashyApp.setUserState(user, StateTypeWordToRemove, null);
-        await ctx.reply(responseTypeWordToRemove);
+    private _onCallbackQueryData = async (ctx: BotContext, user: User): Promise<void> => {
+        if (ctx.callbackQuery?.data === undefined) {
+            await ctx.answerCallbackQuery();
+            return;
+        }
+
+        const callbackDataParts = ctx.callbackQuery.data.split(":");
+        const callbackDataPrefix = callbackDataParts[0];
+
+        if (callbackDataPrefix === "word") {
+            //TODO
+        } else if (callbackDataPrefix === "list_word_close") {
+            await ctx.deleteMessage();
+        } else if (callbackDataPrefix === "list_word_page") { // TODO check enum, not strings
+            const nextId = Number(callbackDataParts[1]);
+            if (Number.isNaN(nextId)) {
+                await ctx.deleteMessage();
+                await ctx.answerCallbackQuery();
+                return;
+            }
+            const pairs = await this.dictionaryService.list(user, Number(callbackDataParts[1]));
+            await ctx.editMessageReplyMarkup({reply_markup: keyboardOnListWordsBuilder(pairs)});
+        }
+        await ctx.answerCallbackQuery();
+    };
+
+    private _onCancel = async (ctx: BotContext, user: User): Promise<void> => {
+        await this.userService.resetState(user);
+        await ctx.reply(responseOkNext, {reply_markup: keyboardOnStart});
     };
 
     private _onCheckWord = async (ctx: BotContext, user: User): Promise<void> => {
-        const maybeLearningPair = await this.flashyApp.getRandomWordsPair(user);
+        const maybeLearningPair = await this.dictionaryService.getRandom(user);
         if (maybeLearningPair === null) {
             await ctx.reply(responseNothingAdded);
             return;
         }
 
-        await this.flashyApp.setUserState<typeof StateStudyMode>(
+        await this.userService.setState<typeof StateStudyMode>(
             user,
             StateStudyMode,
             null
@@ -162,13 +230,13 @@ export class BotApp {
     };
 
     private async _onCheckDefinition(ctx: BotContext, user: User): Promise<void> {
-        const maybeLearningPair = await this.flashyApp.getRandomWordsPair(user);
+        const maybeLearningPair = await this.dictionaryService.getRandom(user);
         if (maybeLearningPair === null) {
             await ctx.reply(responseNothingAdded);
             return;
         }
 
-        await this.flashyApp.setUserState<typeof StateStudyMode>(
+        await this.userService.setState<typeof StateStudyMode>(
             user,
             StateStudyMode,
             null
@@ -176,59 +244,82 @@ export class BotApp {
         await ctx.reply(maybeLearningPair.definition);
     }
 
-    private _onCancel = async (ctx: BotContext, user: User): Promise<void> => {
-        await this.flashyApp.resetUserState(user);
-        await ctx.reply(responseOkNext, {reply_markup: keyboardOnStart});
+    /**
+     *
+     * TODO:
+     * * if words < threshold -> don't show next button
+     * * if no words in the next page -> don't show next button
+     * * 'back' button
+     */
+    private _onListWords = async (ctx: BotContext, user: User): Promise<void> => {
+        const pairs = await this.dictionaryService.list(user, 0);
+        if (pairs.length === 0) {
+            await ctx.reply(responseOkNext, {reply_markup: keyboardNoMoreWordsBuilder()});
+        }
+        const reply = keyboardOnListWordsBuilder(pairs);
+
+        await ctx.reply(responseOkNext, {reply_markup: reply});
     };
 
     private _onCheckWordOrDefinition = async (_ctx: BotContext, _user: User): Promise<void> => {
         //
     };
 
-    onStart = async(ctx: BotContext): Promise<void> => {
-        const user = await this.flashyApp.getUser(ctx.from.id);
-        if (user === null) {
-            await this.flashyApp.createUser(ctx.from.id);
-            await ctx.reply(responseGreeting, {reply_markup: keyboardOnStart});
-            return;
-        }
-
-        await this.flashyApp.resetUserState(user);
-        await ctx.reply(responseGreetingAgain, {reply_markup: keyboardOnStart});
-    };
-
     /**
      * @throws {DomainStorageStateError} on user state don't match state info
      */
     private _onMessageText = async (ctx: BotContext, user: User): Promise<void> => {
-
         const message = ctx.message?.text;
         if (message === undefined) {
             await ctx.reply("Sorry, I don't understand you. Please try again");
             return;
         }
 
-        await this.flashyApp.actOnUserState(user.id, message);
-
         switch (user.state) {
         case StateTypeWordToAdd:
+            this.userService.setState(user, StateTypeDefinitionToAdd, { word: message });
             await ctx.reply(responseTypeDefinitionToAdd);
-            return;
+
+            break;
         case StateTypeDefinitionToAdd: {
+            const checkGuard = StateDataCheckMap[user.state];
+            if (!checkGuard(user.stateInfo)) {
+                throw new DomainStorageStateError(
+                    `user state(${user.state}) not match state info(${JSON.stringify(user.stateInfo)})`
+                );
+            }
+            try {
+                await this.dictionaryService.create(user, {
+                    word: user.stateInfo.word,
+                    definition: message
+                });
+            } catch (e) {
+                if (isStorageError(e)) {
+                    if (e instanceof DuplicateError) {
+                        await this.userService.resetState(user);
+                        return;
+                    }
+                }
+                throw e;
+            }
+            await this.userService.resetState(user);
             await ctx.reply(responseWordAdded);
-            return;
+            break;
         }
         case StateTypeWordToRemove:
+            await this.dictionaryService.remove(user.id, message);
+            await this.userService.resetState(user);
             await ctx.reply(responseWordRemoved);
-            return;
+            break;
         default:
             await ctx.reply("Sorry, I don't understand you. Please try again");
         }
     };
 
-    static init(flashyApp: FlashyApp): BotApp {
-        return new BotApp(flashyApp);
-    }
+    private _onRemoveHandler = async (ctx: BotContext, user: User): Promise<void> => {
+        await this.userService.setState(user, StateTypeWordToRemove, null);
+        await ctx.reply(responseTypeWordToRemove);
+    };
 
     private mwErrorCatch = async (handler: Handler): Promise<Handler> => {
         return async (ctx: BotContext) => {
@@ -236,7 +327,7 @@ export class BotApp {
                 await handler(ctx);
             } catch (e) {
                 if (typeof ctx.from.id === "number") {
-                    await this.flashyApp.resetUserState(User.new(ctx.from.id));
+                    await this.userService.resetState(User.new(ctx.from.id));
                 }
 
                 if (isStateMismatchError(e)) {
@@ -262,18 +353,21 @@ export class BotApp {
         };
     };
 
-    private mwCheckUserState = async (allowedStates: Set<State>, handler: HandlerWithUser): Promise<Handler> => {
+    private mwCheckUserState = async (allowedStates: Set<State> | null, handler: HandlerWithUser): Promise<Handler> => {
         return async (ctx: BotContext) => {
-            logger.info("mwCheckUserState start");
-            const user = await this.flashyApp.getUser(ctx.from.id);
+            const user = await this.userService.get(ctx.from.id);
             if (!user) {
                 throw new Error("TODO");
             }
-            if (!allowedStates.has(user.state)) {
+            if (allowedStates !== null && !allowedStates.has(user.state)) {
                 throw new BotStateMismatch("unexpected state", Array.from(allowedStates.values()), user.state);
             }
 
             await handler(ctx, user);
         };
     };
+
+    static init(dictionaryService: FlashyDictionaryService, userService: FlashyUserService): BotApp {
+        return new BotApp(dictionaryService, userService);
+    }
 }

@@ -1,37 +1,26 @@
-import { IDictionaryRepository, LearningPair } from "./dictionary";
-import { DomainStorageStateError } from "./errors";
+import { IDictionaryRepository, LearningPair, LearningPairWithId } from "./dictionary";
 import {
-    StateTypeWordToAdd,
-    StateTypeDefinitionToAdd,
-    StateDataCheckMap,
-    StateTypeWordToRemove,
     State,
     StateInfo,
     StateDefault
 } from "./state";
 import { IUserRepository, User } from "./user";
-import { isStorageError, DuplicateError } from "../adapter/internal/storage";
-import { getLogger } from "../lib/logger";
 
-const logger = getLogger("FlashyApp");
-
-export class FlashyApp {
+export class FlashyUserService {
     private constructor(
-        private readonly wordStorage: IDictionaryRepository,
         private readonly userStorage: IUserRepository,
     ) { }
 
-    async createUser(id: number): Promise<User> {
+    async create(id: number): Promise<User> {
         await this.userStorage.createUser(id);
         return User.new(id);
     }
 
-    async getUser(id: number): Promise<User | null> {
-        logger.info("getUser start");
+    async get(id: number): Promise<User | null> {
         return this.userStorage.getUser(id);
     }
 
-    async setUserState<T extends State>(user: User, state: T, stateInfo: StateInfo[T]): Promise<User> {
+    async setState<T extends State>(user: User, state: T, stateInfo: StateInfo[T]): Promise<User> {
         await this.userStorage.setState(user.id, state, stateInfo);
         return User.init(
             user.id,
@@ -40,63 +29,38 @@ export class FlashyApp {
         );
     }
 
-    async resetUserState(user: User): Promise<User> {
+    async resetState(user: User): Promise<User> {
         await this.userStorage.setState(user.id, StateDefault, null);
         return User.init(user.id, StateDefault, null);
     }
 
-    async getRandomWordsPair(user: User): Promise<LearningPair | null> {
-        return this.wordStorage.getRandomWordsPair({userId: user.id});
+    static init(userStorage: IUserRepository): FlashyUserService {
+        return new FlashyUserService(userStorage);
+    }
+}
+
+export class FlashyDictionaryService {
+    private constructor(
+        private readonly wordStorage: IDictionaryRepository,
+    ) { }
+
+    async create(user: User, pair: LearningPair): Promise<void> {
+        await this.wordStorage.createWordsPair({userId: user.id, ...pair});
     }
 
-    async removeUserWord(userId: number, word: string) {
+    async getRandom(user: User): Promise<LearningPair | null> {
+        return this.wordStorage.getRandomWordPairs({userId: user.id});
+    }
+
+    async list(user: User, fromId = 0): Promise<LearningPairWithId[]> {
+        return this.wordStorage.listWordPairs(user.id, fromId, 5);
+    }
+
+    async remove(userId: number, word: string) {
         await this.wordStorage.removeWordsPair({ userId, word });
     }
 
-    async actOnUserState(userId: number, message: string): Promise<void> {
-        // TODO move to the BotApp
-        let user = await this.userStorage.getUser(userId);
-        if (user === null) {
-            user = await this.userStorage.createUser(userId);
-        }
-
-        switch (user.state) {
-        case StateTypeWordToAdd:
-            this.userStorage.setState(user.id, StateTypeDefinitionToAdd, { word: message });
-            return;
-        case StateTypeDefinitionToAdd: {
-            const checkGuard = StateDataCheckMap[user.state];
-            if (!checkGuard(user.stateInfo)) {
-                throw new DomainStorageStateError(
-                    `user state(${user.state}) not match state info(${JSON.stringify(user.stateInfo)})`
-                );
-            }
-            try {
-                await this.wordStorage.createWordsPair({
-                    userId: user.id,
-                    word: user.stateInfo.word,
-                    definition: message
-                });
-            } catch (e) {
-                if (isStorageError(e)) {
-                    if (e instanceof DuplicateError) {
-                        await this.resetUserState(user);
-                        return;
-                    }
-                }
-                throw e;
-            }
-            await this.resetUserState(user);
-            return;
-        }
-        case StateTypeWordToRemove:
-            await this.wordStorage.removeWordsPair({ userId: user.id, word: message });
-            await this.resetUserState(user);
-            return;
-        }
-    }
-
-    static init(wordsStorage: IDictionaryRepository, userStorage: IUserRepository): FlashyApp {
-        return new FlashyApp(wordsStorage, userStorage);
+    static init(wordsStorage: IDictionaryRepository): FlashyDictionaryService {
+        return new FlashyDictionaryService(wordsStorage);
     }
 }

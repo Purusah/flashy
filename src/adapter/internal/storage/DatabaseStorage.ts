@@ -1,6 +1,6 @@
 import * as Pg from "pg";
 import { DuplicateError, StorageError, StorageInternalError } from ".";
-import { IDictionaryRepository, LearningPair } from "../../../domain/dictionary";
+import { IDictionaryRepository, LearningPair, LearningPairWithId } from "../../../domain/dictionary";
 import { DomainStorageStateError, DomainUserNotFoundError } from "../../../domain/errors";
 import { State, StateInfo } from "../../../domain/state";
 import { IUserRepository, User } from "../../../domain/user";
@@ -34,14 +34,6 @@ export const isDatabaseError = (error: any): error is Pg.DatabaseError => {
 export class DatabaseDictionaryStorage implements IDictionaryRepository, IClosable {
     private constructor (private readonly pool: Pg.Pool) { }
 
-    static init(config: IDatabaseStorageConfig) {
-        const pool = new pg.Pool({
-            connectionString: config.url,
-            ssl: config.ssl ?? undefined,
-        });
-        return new DatabaseDictionaryStorage(pool);
-    }
-
     async createWordsPair(
         updateData: { userId: number, word: string, definition: string }
     ): Promise<void> {
@@ -63,21 +55,7 @@ export class DatabaseDictionaryStorage implements IDictionaryRepository, IClosab
         }
     }
 
-    async removeWordsPair(
-        updateData: { userId: number, word: string }
-    ): Promise<void> {
-        const { userId, word } = updateData;
-
-        const res = await this.pool.query(
-            "DELETE FROM definitions WHERE user_id = $1 AND word = $2;",
-            [userId, word]
-        );
-        if (res.rowCount === 0) {
-            throw new NoRowsAffected();
-        }
-    }
-
-    async getRandomWordsPair(userFilter: { userId: number }): Promise<LearningPair | null> {
+    async getRandomWordPairs(userFilter: { userId: number }): Promise<LearningPair | null> {
         const { userId } = userFilter;
 
         const result = await this.pool.query(
@@ -97,8 +75,46 @@ export class DatabaseDictionaryStorage implements IDictionaryRepository, IClosab
         };
     }
 
+    async listWordPairs(userId: number, fromId: number, limit: number): Promise<LearningPairWithId[]> {
+        const result = await this.pool.query<LearningPairWithId>(
+            `SELECT
+                id,
+                word,
+                definition
+            FROM definitions
+            WHERE user_id = $1
+                AND id > $2
+            ORDER BY id
+            LIMIT $3;`,
+            [userId, fromId, limit],
+        );
+        return result.rows;
+    }
+
+    async removeWordsPair(
+        updateData: { userId: number, word: string }
+    ): Promise<void> {
+        const { userId, word } = updateData;
+
+        const res = await this.pool.query(
+            "DELETE FROM definitions WHERE user_id = $1 AND word = $2;",
+            [userId, word]
+        );
+        if (res.rowCount === 0) {
+            throw new NoRowsAffected();
+        }
+    }
+
     async close(): Promise<void> {
         return this.pool.end();
+    }
+
+    static init(config: IDatabaseStorageConfig) {
+        const pool = new pg.Pool({
+            connectionString: config.url,
+            ssl: config.ssl ?? undefined,
+        });
+        return new DatabaseDictionaryStorage(pool);
     }
 }
 
@@ -107,12 +123,27 @@ export class DatabaseUserStorage implements IUserRepository, IClosable {
         private readonly pool: Pg.Pool
     ) { }
 
-    static init(config: IDatabaseStorageConfig): DatabaseUserStorage {
-        const pool = new pg.Pool({
-            connectionString: config.url,
-            ssl: config.ssl ?? undefined,
-        });
-        return new DatabaseUserStorage(pool);
+    async createUser (userId: number): Promise<User> {
+        let res: Pg.QueryResult<{ id: number }> | null = null;
+
+        try {
+            res = await this.pool.query("INSERT INTO users (user_id) VALUES ($1) RETURNING id;", [userId]);
+            if (res.rowCount !== 1) {
+                throw StorageInternalError;
+            }
+        } catch (e) {
+            throw StorageInternalError;
+        }
+        if (typeof res.rows[0]?.id !== "number") {
+            throw StorageInternalError;
+        }
+        const user = User.new(userId);
+        user.id = res.rows[0].id;
+        return user;
+    }
+
+    async close(): Promise<void> {
+        return this.pool.end();
     }
 
     /**
@@ -149,27 +180,12 @@ export class DatabaseUserStorage implements IUserRepository, IClosable {
         );
     }
 
-    async createUser (userId: number): Promise<User> {
-        let res: Pg.QueryResult<{ id: number }> | null = null;
-
-        try {
-            res = await this.pool.query("INSERT INTO users (user_id) VALUES ($1) RETURNING id;", [userId]);
-            if (res.rowCount !== 1) {
-                throw StorageInternalError;
-            }
-        } catch (e) {
-            throw StorageInternalError;
-        }
-        if (typeof res.rows[0]?.id !== "number") {
-            throw StorageInternalError;
-        }
-        const user = User.new(userId);
-        user.id = res.rows[0].id;
-        return user;
-    }
-
-    async close(): Promise<void> {
-        return this.pool.end();
+    static init(config: IDatabaseStorageConfig): DatabaseUserStorage {
+        const pool = new pg.Pool({
+            connectionString: config.url,
+            ssl: config.ssl ?? undefined,
+        });
+        return new DatabaseUserStorage(pool);
     }
 
 }

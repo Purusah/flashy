@@ -13,7 +13,8 @@ export type Commands = "ADD" |
     "CHECK_DEFINITION" |
     "CHECK_WORD_DEFINITION" |
     "CANCEL" |
-    "CHECK_NEXT_WORD";
+    "CHECK_NEXT_WORD" |
+    "LIST_WORDS";
 
 export const onTextMsgAllowedState: Set<State> = new Set(
     [StateTypeWordToAdd, StateTypeDefinitionToAdd, StateTypeWordToRemove],
@@ -26,6 +27,7 @@ export const Command: { [Property in Commands]: string } = {
     CHECK_NEXT_WORD: <Commands>"Next word",
     CHECK_WORD: <Commands>"Study words",
     CHECK_WORD_DEFINITION: <Commands>"Study word or definition",
+    LIST_WORDS: "📓 List words",
     REMOVE: <Commands>"🟥 Remove word",
 };
 
@@ -36,6 +38,7 @@ export const CommandState: { [Property in Commands]: Set<State> } = {
     CHECK_NEXT_WORD: new Set([StateDefault, StateStudyMode]),
     CHECK_WORD: new Set([StateDefault, StateStudyMode]),
     CHECK_WORD_DEFINITION: new Set([StateDefault, StateStudyMode]),
+    LIST_WORDS: new Set([StateDefault]),
     REMOVE: new Set([StateDefault]),
 };
 
