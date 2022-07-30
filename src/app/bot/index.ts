@@ -1,18 +1,7 @@
 import {
     CommandState,
     onTextMsgAllowedState,
-    responseGreeting,
-    responseGreetingAgain,
-    responseNothingAdded,
-    responseOkNext,
-    responseTypeDefinitionToAdd,
-    responseTypeWordToAdd,
-    responseTypeWordToRemove,
-    responseUnknownError,
-    responseUnknownWord,
-    responseWordAdded,
-    responseWordRemoved,
-    responseWrongCommand,
+    Responses,
 } from "../../adapter/external/tg/commands";
 import { BotContext } from "../../adapter/external/tg";
 import { DuplicateError, isStorageError } from "../../adapter/internal/storage";
@@ -148,12 +137,12 @@ export class BotApp {
         const user = await this.userService.get(ctx.from.id);
         if (user === null) {
             await this.userService.create(ctx.from.id);
-            await ctx.reply(responseGreeting, {reply_markup: keyboardOnStart});
+            await ctx.reply(Responses.GREET, {reply_markup: keyboardOnStart});
             return;
         }
 
         await this.userService.resetState(user);
-        await ctx.reply(responseGreetingAgain, {reply_markup: keyboardOnStart});
+        await ctx.reply(Responses.GREET_REPEAT, {reply_markup: keyboardOnStart});
     };
 
     /**
@@ -175,7 +164,7 @@ export class BotApp {
             }
         }
 
-        await ctx.reply(responseTypeWordToAdd);
+        await ctx.reply(Responses.WORD_ADD_TYPE);
     };
 
     /**
@@ -197,13 +186,13 @@ export class BotApp {
             const wordId = Number(callbackDataParts[1]);
             if (Number.isNaN(wordId)) {
                 await ctx.deleteMessage();
-                await ctx.answerCallbackQuery(responseUnknownError);
+                await ctx.answerCallbackQuery(Responses.ERROR);
                 return;
             }
 
             const pair = await this.dictionaryService.get(user, wordId);
             if (pair === null) {
-                await ctx.answerCallbackQuery(responseUnknownWord);
+                await ctx.answerCallbackQuery(Responses.BAD_WORD);
                 return;
             }
 
@@ -215,7 +204,7 @@ export class BotApp {
             const nextId = Number(callbackDataParts[1]);
             if (Number.isNaN(nextId)) {
                 await ctx.deleteMessage();
-                await ctx.answerCallbackQuery(responseUnknownError);
+                await ctx.answerCallbackQuery(Responses.ERROR);
                 return;
             }
             const pairs = await this.dictionaryService.list(user, Number(callbackDataParts[1]));
@@ -232,13 +221,13 @@ export class BotApp {
 
     private _onCancel = async (ctx: BotContext, user: User): Promise<void> => {
         await this.userService.resetState(user);
-        await ctx.reply(responseOkNext, {reply_markup: keyboardOnStart});
+        await ctx.reply(Responses.OK_NEXT, {reply_markup: keyboardOnStart});
     };
 
     private _onCheckWord = async (ctx: BotContext, user: User): Promise<void> => {
         const maybeLearningPair = await this.dictionaryService.getRandom(user);
         if (maybeLearningPair === null) {
-            await ctx.reply(responseNothingAdded);
+            await ctx.reply(Responses.NOT_FOUND);
             return;
         }
 
@@ -257,7 +246,7 @@ export class BotApp {
     private async _onCheckDefinition(ctx: BotContext, user: User): Promise<void> {
         const maybeLearningPair = await this.dictionaryService.getRandom(user);
         if (maybeLearningPair === null) {
-            await ctx.reply(responseNothingAdded);
+            await ctx.reply(Responses.NOT_FOUND);
             return;
         }
 
@@ -283,7 +272,7 @@ export class BotApp {
             keyboard.withNextButton();
         }
 
-        await ctx.reply(responseOkNext, {reply_markup: keyboard.withCloseButton().build()});
+        await ctx.reply(Responses.OK_NEXT, {reply_markup: keyboard.withCloseButton().build()});
     };
 
     private _onCheckWordOrDefinition = async (_ctx: BotContext, _user: User): Promise<void> => {
@@ -303,7 +292,7 @@ export class BotApp {
         switch (user.state) {
         case StateTypeWordToAdd:
             this.userService.setState(user, StateTypeDefinitionToAdd, { word: message });
-            await ctx.reply(responseTypeDefinitionToAdd);
+            await ctx.reply(Responses.DEFINITION_ADD_TYPE);
 
             break;
         case StateTypeDefinitionToAdd: {
@@ -328,13 +317,13 @@ export class BotApp {
                 throw e;
             }
             await this.userService.resetState(user);
-            await ctx.reply(responseWordAdded);
+            await ctx.reply(Responses.WORD_ADD_OK);
             break;
         }
         case StateTypeWordToRemove:
             await this.dictionaryService.remove(user.id, message);
             await this.userService.resetState(user);
-            await ctx.reply(responseWordRemoved);
+            await ctx.reply(Responses.WORD_REMOVE_OK);
             break;
         default:
             await ctx.reply("Sorry, I don't understand you. Please try again");
@@ -343,7 +332,7 @@ export class BotApp {
 
     private _onRemoveHandler = async (ctx: BotContext, user: User): Promise<void> => {
         await this.userService.setState(user, StateTypeWordToRemove, null);
-        await ctx.reply(responseTypeWordToRemove);
+        await ctx.reply(Responses.WORD_REMOVE_TYPE);
     };
 
     private mwErrorCatch = async (handler: Handler): Promise<Handler> => {
@@ -357,23 +346,23 @@ export class BotApp {
 
                 if (isStateMismatchError(e)) {
                     logger.error(`expected state ${e.expectedStates} received state ${e.receivedState}`);
-                    await ctx.reply(responseWrongCommand);
+                    await ctx.reply(Responses.BAD_COMMAND);
                     return;
                 }
                 if (isStateInfoMismatchError(e)) {
                     // just to make log msg line shorter
                     const recvState = JSON.stringify(e.receivedStateInfoObject);
                     logger.error(`expected state info ${e.expectedStateInfoType} received state ${recvState}`);
-                    await ctx.reply(responseUnknownError, {reply_markup: keyboardOnStart});
+                    await ctx.reply(Responses.ERROR, {reply_markup: keyboardOnStart});
                     return;
                 }
                 if ((isStorageError(e) && (e instanceof NoRowsAffected))) {
-                    await ctx.reply(responseUnknownWord, {reply_markup: keyboardOnStart});
+                    await ctx.reply(Responses.BAD_WORD, {reply_markup: keyboardOnStart});
                     return;
                 }
 
                 logger.error("middleware error catch", e);
-                await ctx.reply(responseUnknownError, {reply_markup: keyboardOnStart});
+                await ctx.reply(Responses.ERROR, {reply_markup: keyboardOnStart});
             }
         };
     };

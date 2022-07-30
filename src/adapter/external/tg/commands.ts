@@ -42,17 +42,18 @@ export const CommandState: { [Property in Commands]: Set<State> } = {
     REMOVE: new Set([StateDefault]),
 };
 
-export const responseCantAddWordTwice = "Can't add word twice";
-export const responseGreeting = "Nice to meet you!";
-export const responseGreetingAgain = "Nice to see you again!";
-export const responseNothingAdded = "Nothing to show";
-export const responseOkNext = "Ok, what's next?";
-export const responseTypeWordToAdd = "Type word to add";
-export const responseTypeWordToRemove = "Type word to remove";
-export const responseTypeDefinitionToAdd = "Type definition to use";
-export const responseUnknownError = "Oops, something went wrong";
-export const responseUnknownUser = "Please, type /start to use bot";
-export const responseUnknownWord = "Oops, word not found";
-export const responseWordAdded = "Your word added";
-export const responseWordRemoved = "Your word removed";
-export const responseWrongCommand = "Oops, let's try again";
+export const Responses = {
+    BAD_COMMAND: "Oops, let's try again",
+    BAD_WORD: "Oops, word not found",
+    DEFINITION_ADD_TYPE: "Type definition to use",
+    GREET: "Nice to meet you!",
+    GREET_REPEAT: "Nice to see you again!",
+    NOT_FOUND: "Nothing to show",
+    OK_NEXT: "Ok, what's next?",
+    ERROR: "Oops, something went wrong",
+    WORD_ADD_OK: "Your word added",
+    WORD_ADD_TYPE: "Type word to add",
+    WORD_REMOVE_OK: "Your word removed",
+    WORD_REMOVE_TYPE: "Type word to remove",
+
+};
