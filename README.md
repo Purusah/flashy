@@ -17,3 +17,4 @@ Link to Telegram (TBA soon)
 1. Propose definition from API
 1. i18n
 1. Multiple definitions for one word (?)
+1. Use personal Google Doc to store words
