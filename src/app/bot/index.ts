@@ -194,14 +194,28 @@ export class BotApp {
         const callbackDataPrefix = callbackDataParts[0];
 
         if (callbackDataPrefix === "word") {
-            //TODO
+            const wordId = Number(callbackDataParts[1]);
+            if (Number.isNaN(wordId)) {
+                await ctx.deleteMessage();
+                await ctx.answerCallbackQuery(responseUnknownError);
+                return;
+            }
+
+            const pair = await this.dictionaryService.get(user, wordId);
+            if (pair === null) {
+                await ctx.answerCallbackQuery(responseUnknownWord);
+                return;
+            }
+
+            await ctx.reply(pair.word);
+            await ctx.reply(pair.definition);
         } else if (callbackDataPrefix === "list_word_close") {
             await ctx.deleteMessage();
         } else if (callbackDataPrefix === "list_word_next") { // TODO check enum, not strings
             const nextId = Number(callbackDataParts[1]);
             if (Number.isNaN(nextId)) {
                 await ctx.deleteMessage();
-                await ctx.answerCallbackQuery();
+                await ctx.answerCallbackQuery(responseUnknownError);
                 return;
             }
             const pairs = await this.dictionaryService.list(user, Number(callbackDataParts[1]));

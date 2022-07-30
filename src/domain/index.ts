@@ -50,6 +50,10 @@ export class FlashyDictionaryService {
         await this.wordStorage.createWordsPair({userId: user.id, ...pair});
     }
 
+    async get(user: User, wordId: number): Promise<LearningPair | null> {
+        return this.wordStorage.getWordPair({userId: user.id, wordId});
+    }
+
     async getRandom(user: User): Promise<LearningPair | null> {
         return this.wordStorage.getRandomWordPairs({userId: user.id});
     }
