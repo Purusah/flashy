@@ -40,6 +40,8 @@ export class FlashyUserService {
 }
 
 export class FlashyDictionaryService {
+    public static MAX_WORDS_LIST_LENGTH = 5;
+
     private constructor(
         private readonly wordStorage: IDictionaryRepository,
     ) { }
@@ -53,7 +55,7 @@ export class FlashyDictionaryService {
     }
 
     async list(user: User, fromId = 0): Promise<LearningPairWithId[]> {
-        return this.wordStorage.listWordPairs(user.id, fromId, 5);
+        return this.wordStorage.listWordPairs(user.id, fromId, FlashyDictionaryService.MAX_WORDS_LIST_LENGTH);
     }
 
     async remove(userId: number, word: string) {

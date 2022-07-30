@@ -30,12 +30,11 @@ import { DomainStorageStateError, DomainUserNotFoundError, DomainUserStateError 
 import { FlashyDictionaryService, FlashyUserService } from "../../domain";
 import { getLogger } from "../../lib/logger";
 import {
-    keyboardNoMoreWordsBuilder,
     keyboardOnStart,
     keyboardOnStudy,
-    keyboardOnListWordsBuilder,
     makeTextBold,
     makeTextSpoiler,
+    WordsListInlineKeyboardBuilder,
 } from "./markup";
 import { BotServerError, BotStateMismatch, isStateInfoMismatchError, isStateMismatchError } from "./errors";
 
@@ -179,6 +178,12 @@ export class BotApp {
         await ctx.reply(responseTypeWordToAdd);
     };
 
+    /**
+     *
+     * TODO:
+     * * remove `ctx.callbackQuery?.data` undefined check
+     * * log NaN word ids
+     */
     private _onCallbackQueryData = async (ctx: BotContext, user: User): Promise<void> => {
         if (ctx.callbackQuery?.data === undefined) {
             await ctx.answerCallbackQuery();
@@ -192,7 +197,7 @@ export class BotApp {
             //TODO
         } else if (callbackDataPrefix === "list_word_close") {
             await ctx.deleteMessage();
-        } else if (callbackDataPrefix === "list_word_page") { // TODO check enum, not strings
+        } else if (callbackDataPrefix === "list_word_next") { // TODO check enum, not strings
             const nextId = Number(callbackDataParts[1]);
             if (Number.isNaN(nextId)) {
                 await ctx.deleteMessage();
@@ -200,7 +205,13 @@ export class BotApp {
                 return;
             }
             const pairs = await this.dictionaryService.list(user, Number(callbackDataParts[1]));
-            await ctx.editMessageReplyMarkup({reply_markup: keyboardOnListWordsBuilder(pairs)});
+            const keyboard = new WordsListInlineKeyboardBuilder(pairs);
+
+            if (pairs.length === FlashyDictionaryService.MAX_WORDS_LIST_LENGTH) {
+                keyboard.withNextButton();
+            }
+
+            await ctx.editMessageReplyMarkup({reply_markup: keyboard.withCloseButton().build()});
         }
         await ctx.answerCallbackQuery();
     };
@@ -247,18 +258,18 @@ export class BotApp {
     /**
      *
      * TODO:
-     * * if words < threshold -> don't show next button
      * * if no words in the next page -> don't show next button
-     * * 'back' button
+     * * if previous words exists -> show 'back' button
      */
     private _onListWords = async (ctx: BotContext, user: User): Promise<void> => {
         const pairs = await this.dictionaryService.list(user, 0);
-        if (pairs.length === 0) {
-            await ctx.reply(responseOkNext, {reply_markup: keyboardNoMoreWordsBuilder()});
-        }
-        const reply = keyboardOnListWordsBuilder(pairs);
+        const keyboard = new WordsListInlineKeyboardBuilder(pairs);
 
-        await ctx.reply(responseOkNext, {reply_markup: reply});
+        if (pairs.length === FlashyDictionaryService.MAX_WORDS_LIST_LENGTH) {
+            keyboard.withNextButton();
+        }
+
+        await ctx.reply(responseOkNext, {reply_markup: keyboard.withCloseButton().build()});
     };
 
     private _onCheckWordOrDefinition = async (_ctx: BotContext, _user: User): Promise<void> => {
