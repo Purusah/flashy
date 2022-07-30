@@ -1,4 +1,4 @@
-CREATE TYPE user_state AS ENUM ('default', 'type_word_to_add', 'type_definition_to_add', 'type_word_to_remove', 'study_mode');
+CREATE TYPE user_state AS ENUM ('default', 'study_mode', 'type_definition_to_add' 'type_word_to_add', 'type_word_to_find', 'type_word_to_remove');
 
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,

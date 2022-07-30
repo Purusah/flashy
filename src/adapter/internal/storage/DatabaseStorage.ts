@@ -55,6 +55,26 @@ export class DatabaseDictionaryStorage implements IDictionaryRepository, IClosab
         }
     }
 
+    async getExactWordPair(filter: { userId: number; word: string; }): Promise<LearningPair | null> {
+        const { userId, word } = filter;
+
+        const result = await this.pool.query(
+            "SELECT word, definition FROM definitions WHERE word = $1 AND user_id = $2 LIMIT 1;",
+            [word, userId],
+        );
+
+        if (result.rowCount === 0) {
+            return null;
+        }
+
+        const row = result.rows[0];
+
+        return {
+            word: row.word,
+            definition: row.definition,
+        };
+    }
+
     async getWordPair(filter: { userId: number, wordId: number }): Promise<LearningPair | null> {
         const { userId, wordId } = filter;
 

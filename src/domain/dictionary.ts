@@ -12,6 +12,8 @@ export interface IDictionaryRepository {
         updateData: { userId: number, word: string, definition: string }
     ): Promise<void>
 
+    getExactWordPair(filter: { userId: number, word: string }): Promise<LearningPair | null>
+
     getWordPair(filter: { userId: number, wordId: number }): Promise<LearningPair | null>
 
     getRandomWordPairs(userFilter: { userId: number }): Promise<LearningPair | null>

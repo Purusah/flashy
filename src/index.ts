@@ -32,13 +32,14 @@ const run = async (config: IConfig): Promise<IClosable[]> => {
 
     bot.command("start", async (ctx: BotContext) => botApp.onStart(ctx));
     bot.hears(Command.ADD, async (ctx) => botApp.onAddHandler(ctx));
-    bot.hears(Command.REMOVE, async (ctx) => botApp.onRemoveHandler(ctx));
-    bot.hears(Command.CHECK_WORD, async (ctx) => botApp.onCheckWord(ctx));
-    bot.hears(Command.CHECK_NEXT_WORD, async (ctx) => botApp.onCheckWord(ctx));
     bot.hears(Command.CANCEL, async (ctx) => botApp.onCancel(ctx));
     bot.hears(Command.CHECK_DEFINITION, async (ctx) => botApp.onCheckDefinition(ctx));
+    bot.hears(Command.CHECK_NEXT_WORD, async (ctx) => botApp.onCheckWord(ctx));
+    bot.hears(Command.CHECK_WORD, async (ctx) => botApp.onCheckWord(ctx));
     bot.hears(Command.CHECK_WORD_DEFINITION, async (ctx) => botApp.onCheckWordOrDefinition(ctx));
+    bot.hears(Command.GET_WORD, async (ctx) => botApp.onGetWord(ctx));
     bot.hears(Command.LIST_WORDS, async (ctx) => botApp.onListWords(ctx));
+    bot.hears(Command.REMOVE, async (ctx) => botApp.onRemoveHandler(ctx));
     bot.on("message:text", async (ctx) => botApp.onMessageText(ctx));
     bot.on("callback_query:data", (ctx) => botApp.onCallbackQueryData(ctx));
 

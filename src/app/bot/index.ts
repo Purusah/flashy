@@ -12,6 +12,7 @@ import {
     StateStudyMode,
     StateTypeDefinitionToAdd,
     StateTypeWordToAdd,
+    StateTypeWordToFind,
     StateTypeWordToRemove,
 } from "../../domain/state";
 import { User, } from "../../domain/user";
@@ -97,6 +98,16 @@ export class BotApp {
             await this.mwCheckUserState(
                 CommandState["CHECK_WORD_DEFINITION"],
                 this._onCheckWordOrDefinition,
+            )
+        );
+        await h(ctx);
+    };
+
+    onGetWord = async (ctx: BotContext): Promise<void> => {
+        const h = await this.mwErrorCatch(
+            await this.mwCheckUserState(
+                CommandState["GET_WORD"],
+                this._onGetWord,
             )
         );
         await h(ctx);
@@ -258,6 +269,25 @@ export class BotApp {
         await ctx.reply(maybeLearningPair.definition);
     }
 
+    private _onGetWord = async (ctx: BotContext, user: User): Promise<void> => {
+        try {
+            await this.userService.setState(user, StateTypeWordToFind, null);
+        } catch (e) {
+            if (e instanceof DomainStorageStateError) {
+                throw new BotServerError("Storage error");
+            }
+            if (e instanceof DomainUserNotFoundError) {
+                throw new BotServerError("Storage error");
+            }
+            if (e instanceof DomainUserStateError) {
+                throw new BotServerError("Storage error");
+            }
+            throw e;
+        }
+
+        await ctx.reply(Responses.WORD_FIND_TYPE);
+    };
+
     /**
      *
      * TODO:
@@ -285,16 +315,11 @@ export class BotApp {
     private _onMessageText = async (ctx: BotContext, user: User): Promise<void> => {
         const message = ctx.message?.text;
         if (message === undefined) {
-            await ctx.reply("Sorry, I don't understand you. Please try again");
+            await ctx.reply("Sorry, I don't understand you. Please try again"); // TODO use const
             return;
         }
 
         switch (user.state) {
-        case StateTypeWordToAdd:
-            this.userService.setState(user, StateTypeDefinitionToAdd, { word: message });
-            await ctx.reply(Responses.DEFINITION_ADD_TYPE);
-
-            break;
         case StateTypeDefinitionToAdd: {
             const checkGuard = StateDataCheckMap[user.state];
             if (!checkGuard(user.stateInfo)) {
@@ -319,6 +344,28 @@ export class BotApp {
             await this.userService.resetState(user);
             await ctx.reply(Responses.WORD_ADD_OK);
             break;
+        }
+        case StateTypeWordToAdd:
+            this.userService.setState(user, StateTypeDefinitionToAdd, { word: message });
+            await ctx.reply(Responses.DEFINITION_ADD_TYPE);
+
+            break;
+        case StateTypeWordToFind: {
+            const pair = await this.dictionaryService.getExact(user, message);
+            if (pair === null) {
+                await ctx.reply(Responses.BAD_WORD);
+                await this.userService.resetState(user);
+                return;
+            }
+
+            const word = `Word: ${makeTextBold(pair.word)}`;
+            await ctx.reply(word, {parse_mode: "MarkdownV2"});
+
+            const definitions = `Definition: ${makeTextSpoiler(pair.definition)}`;
+            await ctx.reply(definitions, {parse_mode: "MarkdownV2"});
+
+            await this.userService.resetState(user);
+            return;
         }
         case StateTypeWordToRemove:
             await this.dictionaryService.remove(user.id, message);

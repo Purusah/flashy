@@ -54,6 +54,10 @@ export class FlashyDictionaryService {
         return this.wordStorage.getWordPair({userId: user.id, wordId});
     }
 
+    async getExact(user: User, word: string): Promise<LearningPair | null> {
+        return this.wordStorage.getExactWordPair({userId: user.id, word});
+    }
+
     async getRandom(user: User): Promise<LearningPair | null> {
         return this.wordStorage.getRandomWordPairs({userId: user.id});
     }

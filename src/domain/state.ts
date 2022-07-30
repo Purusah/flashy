@@ -1,5 +1,6 @@
 export const StateDefault = "default";
 export const StateTypeWordToAdd = "type_word_to_add";
+export const StateTypeWordToFind = "type_word_to_find";
 export const StateTypeWordToRemove = "type_word_to_remove";
 export const StateTypeDefinitionToAdd = "type_definition_to_add";
 // export const StateCheckRandomWord = "checkRandomWord";
@@ -7,15 +8,16 @@ export const StateTypeDefinitionToAdd = "type_definition_to_add";
 export const StateStudyMode = "study_mode";
 
 // typeof StateCheckRandomWord | typeof StateCheckRandomDefinition |
-export type State = typeof StateDefault | typeof StateTypeWordToAdd | typeof StateTypeWordToRemove |
-    typeof StateTypeDefinitionToAdd | typeof StateStudyMode;
+export type State = typeof StateDefault | typeof StateTypeWordToAdd | typeof StateTypeWordToFind |
+    typeof StateTypeWordToRemove | typeof StateTypeDefinitionToAdd | typeof StateStudyMode;
 
 export type StateInfoDefinitionToAdd = { word: string };
 
 export type StateInfo = {
     [StateDefault]: null,
-    [StateTypeWordToAdd]: null,
     [StateTypeDefinitionToAdd]: StateInfoDefinitionToAdd,
+    [StateTypeWordToAdd]: null,
+    [StateTypeWordToFind]: null,
     [StateTypeWordToRemove]: null,
     // [StateCheckRandomWord]: StateCheckRandom,
     // [StateCheckRandomDefinition]: StateCheckRandom,
@@ -28,13 +30,14 @@ export type StateCheckFunc<T extends State, D> = (state: {
 
 export const StateDataCheckMap: {[key in State]: (data: any) => data is StateInfo[key]} = {
     [StateDefault]: (data: any): data is StateInfo[typeof StateDefault] => data === null,
-    [StateTypeWordToAdd]: (data: any): data is StateInfo[typeof StateTypeWordToAdd] => data === null,
     [StateTypeDefinitionToAdd]: (data: any): data is StateInfo[typeof StateTypeDefinitionToAdd] => {
         if (typeof data?.word === "string") {
             return true;
         }
         return false;
     },
-    [StateTypeWordToRemove]: (data: any): data is StateInfo[typeof StateTypeWordToRemove] => data === null,
     [StateStudyMode]: (data: any): data is StateInfo[typeof StateDefault] => data === null,
+    [StateTypeWordToAdd]: (data: any): data is StateInfo[typeof StateTypeWordToAdd] => data === null,
+    [StateTypeWordToFind]: (data: any): data is StateInfo[typeof StateTypeWordToFind] => data === null,
+    [StateTypeWordToRemove]: (data: any): data is StateInfo[typeof StateTypeWordToRemove] => data === null,
 };
