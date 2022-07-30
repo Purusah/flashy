@@ -6,10 +6,10 @@ Link to Telegram (TBA soon)
 1. Save your words
 1. Remove your words
 1. Randomly return to you
+1. List words by pages
 
 # Bot is planing to do:
 1. Find and show word with definition by exact match
-1. List words by pages
 1. Edit word's definition
 1. Group words by folders
 1. "Smart" learning: new word, studied word, repetition frequency
