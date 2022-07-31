@@ -37,6 +37,7 @@ const run = async (config: IConfig): Promise<IClosable[]> => {
     bot.hears(Command.CHECK_NEXT_WORD, async (ctx) => botApp.onCheckWord(ctx));
     bot.hears(Command.CHECK_WORD, async (ctx) => botApp.onCheckWord(ctx));
     bot.hears(Command.CHECK_WORD_DEFINITION, async (ctx) => botApp.onCheckWordOrDefinition(ctx));
+    bot.hears(Command.EDIT_DEFINITION, async (ctx) => botApp.onEditDefinition(ctx));
     bot.hears(Command.GET_WORD, async (ctx) => botApp.onGetWord(ctx));
     bot.hears(Command.LIST_WORDS, async (ctx) => botApp.onListWords(ctx));
     bot.hears(Command.REMOVE, async (ctx) => botApp.onRemoveHandler(ctx));

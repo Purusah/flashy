@@ -11,7 +11,9 @@ import {
     StateDataCheckMap,
     StateStudyMode,
     StateTypeDefinitionToAdd,
+    StateTypeDefinitionToEditDefinition,
     StateTypeWordToAdd,
+    StateTypeWordToEditDefinition,
     StateTypeWordToFind,
     StateTypeWordToRemove,
 } from "../../domain/state";
@@ -103,6 +105,16 @@ export class BotApp {
         await h(ctx);
     };
 
+    onEditDefinition = async (ctx: BotContext): Promise<void> => {
+        const h = await this.mwErrorCatch(
+            await this.mwCheckUserState(
+                CommandState["EDIT_DEFINITION"],
+                this._onEditWordDefinition,
+            )
+        );
+        await h(ctx);
+    };
+
     onGetWord = async (ctx: BotContext): Promise<void> => {
         const h = await this.mwErrorCatch(
             await this.mwCheckUserState(
@@ -145,14 +157,19 @@ export class BotApp {
     };
 
     onStart = async(ctx: BotContext): Promise<void> => {
-        const user = await this.userService.get(ctx.from.id);
-        if (user === null) {
-            await this.userService.create(ctx.from.id);
-            await ctx.reply(Responses.GREET, {reply_markup: keyboardOnStart});
-            return;
+        try {
+            const user = await this.userService.get(ctx.from.id);
+            await this.userService.resetState(user);
+        } catch (e) {
+            if (e instanceof DomainUserNotFoundError) {
+                await this.userService.create(ctx.from.id);
+                await ctx.reply(Responses.GREET, {reply_markup: keyboardOnStart});
+                return;
+            }
+
+            throw e;
         }
 
-        await this.userService.resetState(user);
         await ctx.reply(Responses.GREET_REPEAT, {reply_markup: keyboardOnStart});
     };
 
@@ -269,6 +286,24 @@ export class BotApp {
         await ctx.reply(maybeLearningPair.definition);
     }
 
+    private _onEditWordDefinition = async (ctx: BotContext, user: User): Promise<void> => {
+        try {
+            await this.userService.setState(user, StateTypeWordToEditDefinition, null);
+        } catch (e) {
+            if (e instanceof DomainStorageStateError) {
+                throw new BotServerError("Storage error");
+            }
+            if (e instanceof DomainUserNotFoundError) {
+                throw new BotServerError("Storage error");
+            }
+            if (e instanceof DomainUserStateError) {
+                throw new BotServerError("Storage error");
+            }
+        }
+
+        await ctx.reply(Responses.DEFINITION_EDIT_TYPE_WORD);
+    };
+
     private _onGetWord = async (ctx: BotContext, user: User): Promise<void> => {
         try {
             await this.userService.setState(user, StateTypeWordToFind, null);
@@ -341,8 +376,28 @@ export class BotApp {
                 }
                 throw e;
             }
-            await this.userService.resetState(user);
             await ctx.reply(Responses.WORD_ADD_OK);
+            await this.userService.resetState(user);
+            break;
+        }
+        case StateTypeWordToEditDefinition: {
+            this.userService.setState(user, StateTypeDefinitionToEditDefinition, { word: message });
+            await ctx.reply(Responses.DEFINITION_EDIT_TYPE_DEFINITION);
+
+            break;
+        }
+        case StateTypeDefinitionToEditDefinition: {
+            const checkGuard = StateDataCheckMap[user.state];
+            if (!checkGuard(user.stateInfo)) {
+                throw new DomainStorageStateError(
+                    `user state(${user.state}) not match state info(${JSON.stringify(user.stateInfo)})`
+                );
+            }
+
+            await this.dictionaryService.updateDefinition(user, {word: user.stateInfo.word, definition: message});
+            await ctx.reply(Responses.OK_NEXT);
+
+            await this.userService.resetState(user);
             break;
         }
         case StateTypeWordToAdd:

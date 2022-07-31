@@ -3,7 +3,7 @@ import { InlineKeyboard, Keyboard } from "grammy/out/convenience/keyboard";
 import { Command } from "../../adapter/external/tg/commands";
 
 export const keyboardOnStart = new Keyboard()
-    .text(Command.ADD).text(Command.REMOVE).row()
+    .text(Command.ADD).text(Command.REMOVE).text(Command.EDIT_DEFINITION).row()
     .text(Command.GET_WORD).text(Command.LIST_WORDS).row()
     .text(Command.CHECK_WORD).row();
 

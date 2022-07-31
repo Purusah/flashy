@@ -7,7 +7,7 @@ import {
 export const UnknownStateError = new Error("Unknown state error");
 
 export interface IUserRepository {
-    getUser(userId: number): Promise<User | null>
+    getUser(userId: number): Promise<User>
     setState<T extends State>(userId: number, state: T, info: StateInfo[T]): Promise<void>
     createUser(userId: number): Promise<User>
 }

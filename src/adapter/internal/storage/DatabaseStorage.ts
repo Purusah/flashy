@@ -145,6 +145,15 @@ export class DatabaseDictionaryStorage implements IDictionaryRepository, IClosab
         }
     }
 
+    async updateWordPairDefinition(update: { userId: number; word: string; definition: string; }): Promise<void> {
+        const { userId, word, definition } = update;
+
+        await this.pool.query(
+            "UPDATE definitions SET definition = $1 WHERE word = $2 AND user_id = $3;",
+            [definition, word, userId],
+        );
+    }
+
     async close(): Promise<void> {
         return this.pool.end();
     }

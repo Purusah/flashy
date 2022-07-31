@@ -3,7 +3,9 @@ import {
     StateDefault,
     StateStudyMode,
     StateTypeDefinitionToAdd,
+    StateTypeDefinitionToEditDefinition,
     StateTypeWordToAdd,
+    StateTypeWordToEditDefinition,
     StateTypeWordToFind,
     StateTypeWordToRemove,
 } from "../../../domain/state";
@@ -15,12 +17,18 @@ export type Commands = "ADD" |
     "CHECK_WORD_DEFINITION" |
     "CANCEL" |
     "CHECK_NEXT_WORD" |
+    "EDIT_DEFINITION" |
     "GET_WORD" |
     "LIST_WORDS";
 
-export const onTextMsgAllowedState: Set<State> = new Set(
-    [StateTypeDefinitionToAdd, StateTypeWordToAdd, StateTypeWordToFind, StateTypeWordToRemove],
-);
+export const onTextMsgAllowedState: Set<State> = new Set([
+    StateTypeDefinitionToAdd,
+    StateTypeDefinitionToEditDefinition,
+    StateTypeWordToEditDefinition,
+    StateTypeWordToAdd,
+    StateTypeWordToFind,
+    StateTypeWordToRemove,
+]);
 
 export const Command: { [Property in Commands]: string } = {
     ADD: <Commands>"🟢 Add word",
@@ -29,27 +37,35 @@ export const Command: { [Property in Commands]: string } = {
     CHECK_NEXT_WORD: <Commands>"Next word",
     CHECK_WORD: <Commands>"🧑‍🎓 Study words",
     CHECK_WORD_DEFINITION: <Commands>"Study word or definition",
+    EDIT_DEFINITION: "Edit word",
     GET_WORD: "🔍 Find word",
     LIST_WORDS: "📓 List words",
     REMOVE: <Commands>"🟥 Remove word",
 };
 
+const baseAllowedStates: Set<State> = new Set([
+    StateDefault, StateTypeWordToEditDefinition, StateTypeWordToAdd, StateTypeWordToFind, StateTypeWordToRemove,
+]);
+
 export const CommandState: { [Property in Commands]: Set<State> } = {
-    ADD: new Set([StateDefault, StateTypeWordToAdd, StateTypeWordToFind, StateTypeWordToRemove]),
+    ADD: baseAllowedStates,
     CANCEL: new Set([StateDefault, StateStudyMode]),
     CHECK_DEFINITION: new Set([StateDefault, StateStudyMode]),
     CHECK_NEXT_WORD: new Set([StateDefault, StateStudyMode]),
     CHECK_WORD: new Set([StateDefault, StateStudyMode]),
     CHECK_WORD_DEFINITION: new Set([StateDefault, StateStudyMode]),
-    GET_WORD: new Set([StateDefault, StateTypeWordToAdd, StateTypeWordToFind, StateTypeWordToRemove]),
+    EDIT_DEFINITION: baseAllowedStates,
+    GET_WORD: baseAllowedStates,
     LIST_WORDS: new Set([StateDefault]),
-    REMOVE: new Set([StateDefault, StateTypeWordToAdd, StateTypeWordToFind, StateTypeWordToRemove]),
+    REMOVE: baseAllowedStates,
 };
 
 export const Responses = {
     BAD_COMMAND: "Oops, let's try again",
     BAD_WORD: "Oops, word not found",
     DEFINITION_ADD_TYPE: "Type definition to use",
+    DEFINITION_EDIT_TYPE_DEFINITION: "Type new definition",
+    DEFINITION_EDIT_TYPE_WORD: "Type word to edit definition",
     GREET: "Nice to meet you!",
     GREET_REPEAT: "Nice to see you again!",
     NOT_FOUND: "Nothing to show",

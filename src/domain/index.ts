@@ -16,7 +16,7 @@ export class FlashyUserService {
         return User.new(id);
     }
 
-    async get(id: number): Promise<User | null> {
+    async get(id: number): Promise<User> {
         return this.userStorage.getUser(id);
     }
 
@@ -48,6 +48,10 @@ export class FlashyDictionaryService {
 
     async create(user: User, pair: LearningPair): Promise<void> {
         await this.wordStorage.createWordsPair({userId: user.id, ...pair});
+    }
+
+    async updateDefinition(user: User, pair: LearningPair): Promise<void> {
+        await this.wordStorage.updateWordPairDefinition({userId: user.id, ...pair});
     }
 
     async get(user: User, wordId: number): Promise<LearningPair | null> {

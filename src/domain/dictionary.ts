@@ -24,4 +24,5 @@ export interface IDictionaryRepository {
         updateData: { userId: number, word: string }
     ): Promise<void>
 
+    updateWordPairDefinition(update: {userId: number, word: string, definition: string}): Promise<void>;
 }

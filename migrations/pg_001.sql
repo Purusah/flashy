@@ -1,9 +1,7 @@
-CREATE TYPE user_state AS ENUM ('default', 'study_mode', 'type_definition_to_add' 'type_word_to_add', 'type_word_to_find', 'type_word_to_remove');
-
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL UNIQUE CHECK(user_id > 0),
-    state user_state NOT NULL DEFAULT 'default'::user_state,
+    state TEXT NOT NULL DEFAULT 'default',
     state_data JSONB
 );
 
