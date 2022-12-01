@@ -70,5 +70,4 @@ const run = async (config: IConfig): Promise<IClosable[]> => {
             await i.close();
         }
     });
-
 })().then();

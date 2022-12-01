@@ -54,6 +54,12 @@
             }
         ],
         "no-multi-spaces": "error",
+        "padded-blocks": [
+            "error",
+            {
+                "blocks": "never"
+            }
+        ],
         "semi-spacing": [
             "error",
             {
