@@ -1,5 +1,5 @@
 import { Context, Bot as Grammy, BotConfig as GrammyConfig } from "grammy";
-import { Message, User } from "grammy/out/platform.node";
+// import { Message, User } from "grammy";
 import { IClosable } from "../../../lib/types";
 
 export interface BotConfig<C extends Context> extends GrammyConfig<C> {}
@@ -9,7 +9,7 @@ export class UnacceptableUserError extends BotError {}
 export class UnacceptableMessageError extends BotError {}
 
 export class BotContext extends Context {
-    override get from(): User {
+    override get from() {
         if (super.from === undefined || super.from.is_bot) {
             throw new UnacceptableUserError("Bad user");
         }
@@ -17,7 +17,7 @@ export class BotContext extends Context {
         return super.from;
     }
 
-    override get msg(): Message {
+    override get msg() {
         if (super.msg === undefined || super.msg.from === undefined) {
             throw new UnacceptableMessageError("Bad message");
         }

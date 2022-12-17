@@ -5,7 +5,7 @@ import {
 } from "../../adapter/external/tg/commands";
 import { BotContext } from "../../adapter/external/tg";
 import { DuplicateError, isStorageError } from "../../adapter/internal/storage";
-import { NoRowsAffected } from "../../adapter/internal/storage/DatabaseStorage";
+import { NoRowsAffected } from "../../adapter/internal/storage";
 import {
     State,
     StateDataCheckMap,

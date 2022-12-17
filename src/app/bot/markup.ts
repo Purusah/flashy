@@ -1,4 +1,4 @@
-import { InlineKeyboard, Keyboard } from "grammy/out/convenience/keyboard";
+import { InlineKeyboard, Keyboard } from "grammy";
 
 import { Command } from "../../adapter/external/tg/commands";
 

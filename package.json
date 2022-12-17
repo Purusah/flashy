@@ -8,7 +8,6 @@
     "build": "tsc",
     "start": "export $(cat .env.local | xargs) &&  tsc && node --inspect --experimental-specifier-resolution=node dist/index.js",
     "start:dev": "export $(cat .env.local | xargs) && nodemon",
-    "start:dev:db": "docker-compose up -- database-local",
     "lint": "eslint . --ext .ts",
     "lint-fix": "eslint . --ext .ts --fix",
     "type": "tsc --noEmit --watch",
@@ -18,7 +17,6 @@
   "license": "MIT",
   "devDependencies": {
     "@types/node": "18.11.10",
-    "@types/pg": "^8.6.5",
     "@typescript-eslint/eslint-plugin": "5.2.0",
     "@typescript-eslint/parser": "5.2.0",
     "eslint": "8.1.0",
@@ -31,7 +29,7 @@
   },
   "dependencies": {
     "grammy": "1.12.0",
-    "pg": "8.8.0",
+    "sqlite3": "5.1.2",
     "winston": "3.8.2"
   }
 }

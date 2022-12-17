@@ -1,4 +1,4 @@
-import { IDatabaseStorageConfig } from "../adapter/internal/storage/DatabaseStorage";
+import { IDatabaseStorageConfig } from "../adapter/internal/storage";
 
 export interface IConfig {
     env: {

@@ -1,22 +1,29 @@
-import { DatabaseError } from "pg";
-
 export const StorageInternalError = new Error("Unpredictable Storage Error");
 export const NoRowsFoundError = new Error("No Rows Found");
 
 export class StorageError extends Error {
-    internalError: DatabaseError | null;
-
-    constructor(databaseError: DatabaseError | null) {
+    constructor() {
         super();
-        this.internalError = databaseError;
     }
 }
 
 export class DuplicateError extends StorageError {
-    constructor(databaseError: DatabaseError) {
-        super(databaseError);
+    constructor() {
+        super();
         this.message = "duplicate entity";
     }
+}
+
+export class NoRowsAffected extends StorageError {
+    constructor() {
+        super();
+        this.message = "no rows affected";
+    }
+}
+
+export interface IDatabaseStorageConfig {
+    url: string;
+    ssl: { rejectUnauthorized: boolean } | null;
 }
 
 export const isStorageError = (error: any): error is StorageError => {

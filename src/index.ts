@@ -3,7 +3,7 @@ import { webhookCallback } from "grammy";
 import { HttpServer } from "./adapter/external/http";
 import { Bot, BotContext } from "./adapter/external/tg";
 import { Command } from "./adapter/external/tg/commands";
-import { DatabaseDictionaryStorage, DatabaseUserStorage } from "./adapter/internal/storage/DatabaseStorage";
+import { DatabaseDictionaryStorage, DatabaseUserStorage } from "./adapter/internal/storage/SQLiteStorage";
 import { BotApp } from "./app/bot";
 import { IConfig, NewConfig } from "./app/config";
 import { FlashyDictionaryService, FlashyUserService } from "./domain";
@@ -16,8 +16,8 @@ const run = async (config: IConfig): Promise<IClosable[]> => {
     const serverConfig = {maxRequestBodySizeBytes: config.bot.maxRequestBodySize, port: config.bot.port};
 
     // init internal adapters: storage
-    const dictionaryStorage = DatabaseDictionaryStorage.init(config.storage);
-    const userStorage = DatabaseUserStorage.init(config.storage);
+    const dictionaryStorage = await DatabaseDictionaryStorage.init(config.storage);
+    const userStorage = await DatabaseUserStorage.init(config.storage);
 
     // init services
     const dictionaryService = FlashyDictionaryService.init(dictionaryStorage);
