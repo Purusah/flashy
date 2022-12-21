@@ -7,9 +7,7 @@ import {
 import { IUserRepository, User } from "./user";
 
 export class FlashyUserService {
-    private constructor(
-        private readonly userStorage: IUserRepository,
-    ) { }
+    private constructor(private readonly userStorage: IUserRepository) { }
 
     async create(id: number): Promise<User> {
         await this.userStorage.createUser(id);
@@ -42,9 +40,7 @@ export class FlashyUserService {
 export class FlashyDictionaryService {
     public static MAX_WORDS_LIST_LENGTH = 5;
 
-    private constructor(
-        private readonly wordStorage: IDictionaryRepository,
-    ) { }
+    private constructor(private readonly wordStorage: IDictionaryRepository) { }
 
     async create(user: User, pair: LearningPair): Promise<void> {
         await this.wordStorage.createWordsPair({userId: user.id, ...pair});

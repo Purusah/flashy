@@ -64,6 +64,17 @@
             }
         ],
         "no-multi-spaces": "error",
+        "padding-line-between-statements": [
+            "error",
+            {
+                "blankLine": "always",
+                "prev": "*",
+                "next": [
+                    "function",
+                    "class"
+                ]
+            }
+        ],
         "padded-blocks": [
             "error",
             {
